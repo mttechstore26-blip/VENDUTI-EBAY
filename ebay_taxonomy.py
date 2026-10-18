@@ -87,6 +87,54 @@ def classify(category_id, title):
         year = re.search(r"\b(19[5-9]\d|20[0-2]\d)(?:\s*[/\-]\s*(?:\d{2}|20\d{2}))?\b",t)
         model = year.group(0) if year else "Anno / edizione non identificato"
         return brand, family, model
+    if str(category_id) == "220":
+        patterns = [
+            ("LEGO", "LEGO Star Wars", r"\blego\b.*\bstar wars\b"),
+            ("LEGO", "LEGO Technic", r"\blego\b.*\btechnic\b"),
+            ("LEGO", "LEGO City", r"\blego\b.*\bcity\b"),
+            ("LEGO", "LEGO", r"\blego\b|\bduplo\b"),
+            ("Mattel", "Hot Wheels", r"hot\s*wheels"),
+            ("Mattel", "Barbie", r"\bbarbie\b"),
+            ("Mattel", "Masters of the Universe", r"masters of the universe|\bmotu\b|he.man"),
+            ("Hasbro", "Transformers", r"\btransformers\b"),
+            ("Hasbro", "Star Wars action figure", r"star wars.*(?:figure|action|hasbro|kenner)"),
+            ("Hasbro", "G.I. Joe", r"g\.?i\.?\s*joe"),
+            ("Bandai", "Gundam / Gunpla", r"\bgundam\b|\bgunpla\b"),
+            ("Bandai", "Dragon Ball", r"dragon\s*ball"),
+            ("Nintendo", "Pokémon", r"pok[eé]mon"),
+            ("Nintendo", "Super Mario", r"super\s*mario"),
+            ("Funko", "Funko Pop", r"\bfunko\b|\bpop\s*!"),
+            ("Playmobil", "Playmobil", r"\bplaymobil\b"),
+            ("Schleich", "Schleich", r"\bschleich\b"),
+            ("Bruder", "Bruder", r"\bbruder\b"),
+            ("Tamiya", "Tamiya", r"\btamiya\b"),
+            ("Revell", "Revell", r"\brevell\b"),
+            ("Bburago", "Bburago", r"\bbburago\b|\bburago\b"),
+            ("Maisto", "Maisto", r"\bmaisto\b"),
+            ("Minichamps", "Minichamps", r"\bminichamps\b"),
+            ("AUTOart", "AUTOart", r"\bautoart\b"),
+            ("IXO", "IXO Models", r"\bixo\b"),
+            ("Hornby", "Trenini Hornby", r"\bhornby\b"),
+            ("Märklin", "Trenini Märklin", r"\bm[aä]rklin\b"),
+            ("Roco", "Trenini Roco", r"\broco\b"),
+            ("Scalextric", "Piste Scalextric", r"\bscalextric\b"),
+        ]
+        brand, family = next(((brand, family) for brand, family, pattern in patterns if re.search(pattern, t)), (None, None))
+        if family is None:
+            general = [
+                ("Modellini auto / moto", r"modellin\w*.*(?:auto|ferrari|porsche|lamborghini|moto)|\bdiecast\b"),
+                ("Modellismo ferroviario", r"trenino|locomotiva|ferromodellismo|scala\s*h0\b"),
+                ("Aerei / navi / kit", r"aeromodellismo|modellino.*(?:aereo|nave)|\bkit\s*model"),
+                ("Action figure", r"action\s*figure|\bfigurine?\s*articolat"),
+                ("Bambole", r"\bbambol[ae]\b|\bdoll\b"),
+                ("Giochi da tavolo", r"gioco da tavolo|board\s*game"),
+                ("Giocattoli radiocomandati", r"radiocomandat|\brc\b"),
+            ]
+            family = next((name for name, pattern in general if re.search(pattern, t)), "Altri giocattoli e modellismo")
+            brand = "Non identificato"
+        match = re.search(r"\b(?:set|art\.?|cod\.?|mod\.?|n\.?|no\.?)\s*[:#-]?\s*(\d{4,7})\b", t)
+        model = match.group(1) if match else "Modello non identificato"
+        return brand, family, model
     if str(category_id) == "63":
         series = [
             ("Dylan Dog",r"\bdylan\s*dog\b"),
