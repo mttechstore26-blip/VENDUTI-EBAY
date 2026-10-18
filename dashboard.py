@@ -101,28 +101,17 @@ if selected_category is not None:
 if search.strip():
     # All words must occur, in any order. Accept common title variants.
     import re
-    words = re.findall(r"[^\\s,;]+", search.casefold().strip())
+    words = [w for w in re.split(r"[,;\\s]+", search.casefold().strip()) if w]
     for word in words:
         variants = [word]
         if word in ("mexico", "messico", "méxico"):
             variants = ["mexico", "messico", "méxico"]
-        elif word == "86":
-            variants = ["86", "1986"]
-        elif word == "78":
-            variants = ["78", "1978"]
-        elif word == "82":
-            variants = ["82", "1982"]
-        elif word == "90":
-            variants = ["90", "1990"]
-        elif word == "94":
-            variants = ["94", "1994"]
-        elif word == "98":
-            variants = ["98", "1998"]
+        elif word in ("86", "78", "82", "90", "94", "98"):
+            variants = [word, "19" + word]
         clauses = []
         for variant in variants:
-            clauses.append('LOWER(COALESCE(title, "")) LIKE ? ESCAPE "\\\\"')
-            safe = variant.replace('\\\\','\\\\\\\\').replace('%','\\\\%').replace('_','\\\\_')
-            params.append('%'+safe+'%')
+            clauses.append('LOWER(COALESCE(title, "")) LIKE ?')
+            params.append('%' + variant + '%')
         where.append('(' + ' OR '.join(clauses) + ')')
 if period != 'Tutti':
     days = {'Ultimi 7 giorni':7,'Ultimi 30 giorni':30,'Ultimi 90 giorni':90,'Ultimi 365 giorni':365}[period]
