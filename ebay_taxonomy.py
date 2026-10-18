@@ -87,6 +87,61 @@ def classify(category_id, title):
         year = re.search(r"\b(19[5-9]\d|20[0-2]\d)(?:\s*[/\-]\s*(?:\d{2}|20\d{2}))?\b",t)
         model = year.group(0) if year else "Anno / edizione non identificato"
         return brand, family, model
+    if str(category_id) in ("717", "233", "183446"):
+        if str(category_id) == "183446":
+            groups = [
+                ("LEGO", "LEGO Star Wars", r"\blego\b.*star wars"),
+                ("LEGO", "LEGO Technic", r"\blego\b.*technic"),
+                ("LEGO", "LEGO City", r"\blego\b.*\bcity\b"),
+                ("LEGO", "LEGO Icons / Creator", r"\blego\b.*(?:icons?|creator|modular)"),
+                ("LEGO", "LEGO Ideas", r"\blego\b.*ideas"),
+                ("LEGO", "LEGO Harry Potter", r"\blego\b.*harry potter"),
+                ("LEGO", "LEGO Marvel / DC", r"\blego\b.*(?:marvel|batman|super heroes)"),
+                ("LEGO", "LEGO", r"\blego\b|\bduplo\b"),
+                ("Playmobil", "Playmobil", r"\bplaymobil\b"),
+                ("Meccano", "Meccano", r"\bmeccano\b"),
+                ("K'NEX", "K'NEX", r"\bk.?nex\b"),
+            ]
+            fallback = "Altre costruzioni"
+        elif str(category_id) == "717":
+            groups = [
+                ("Kenner", "Star Wars vintage", r"star wars|kenner"),
+                ("Mattel", "Hot Wheels vintage", r"hot wheels"),
+                ("Mattel", "Barbie vintage", r"\bbarbie\b"),
+                ("Mattel", "Masters of the Universe", r"masters of the universe|\bmotu\b|he.man"),
+                ("Hasbro", "G.I. Joe vintage", r"g\.?i\.?\s*joe"),
+                ("Tonka", "Tonka", r"\btonka\b"),
+                ("Polistil", "Polistil", r"\bpolistil\b"),
+                ("Bburago", "Bburago vintage", r"\bbburago\b|\bburago\b"),
+                ("Lima", "Trenini Lima", r"\blima\b.*(?:tren|scala|locomot)"),
+                ("Nintendo", "Nintendo vintage", r"\bnintendo\b|game & watch"),
+                ("Fisher-Price", "Fisher-Price vintage", r"fisher.price"),
+            ]
+            fallback = "Altri giocattoli d'epoca"
+        else:
+            groups = [
+                ("Hasbro", "Monopoly", r"\bmonopoly\b"),
+                ("Hasbro", "Risiko", r"\brisiko\b|\brisk\b"),
+                ("Hasbro", "Cluedo", r"\bcluedo\b|\bclue\b"),
+                ("Mattel", "UNO", r"\buno\b.*(?:carte|gioco|card)"),
+                ("Ravensburger", "Ravensburger", r"ravensburger"),
+                ("Asmodee", "Catan", r"\bcatan\b|coloni di catan"),
+                ("Asmodee", "Dixit", r"\bdixit\b"),
+                ("Asmodee", "Ticket to Ride", r"ticket to ride"),
+                ("Giochi Uniti", "Carcassonne", r"\bcarcassonne\b"),
+                ("Games Workshop", "Warhammer", r"\bwarhammer\b"),
+                ("Nintendo", "Pokémon giochi da tavolo", r"pokemon.*(?:gioco da tavolo|board game)"),
+                ("Vari", "Scacchi", r"\bscacchi\b|\bchess\b"),
+            ]
+            fallback = "Altri giochi di società"
+        brand, family = next(((brand, family) for brand, family, pat in groups if re.search(pat, t)), ("Non identificato", fallback))
+        code = re.search(r"\b(?:set|art\.?|cod\.?|mod\.?)\s*[:#-]?\s*(\d{4,7})\b", t)
+        model = code.group(1) if code else "Modello non identificato"
+        if brand == "LEGO" and model == "Modello non identificato":
+            lego_set = re.search(r"(?<!\d)(\d{5})(?!\d)", t)
+            if lego_set:
+                model = lego_set.group(1)
+        return brand, family, model
     if str(category_id) == "220":
         # First identify the product TYPE, then series/brand: a graded Pokémon card
         # must not share a family with a LEGO Pokémon set or a plush.
