@@ -73,7 +73,7 @@ names={str(r.category_id): f'{r.name} ({int(r.n)} venduti)' for r in category_df
 
 with st.sidebar:
     st.header('📂 Navigazione')
-    section = st.radio('Sezione', ['📊 Dashboard', '🏷️ Categorie', '📦 Annunci venduti'])
+    section = st.radio('Sezione', ['📦 Annunci venduti', '🏷️ Categorie'])
     category_opt = st.selectbox('Categoria', ['Tutte le categorie'] + list(names), format_func=lambda k: names.get(k, k))
     selected_category = None if category_opt == 'Tutte le categorie' else category_opt
     st.divider()
@@ -137,7 +137,7 @@ if section == '🏷️ Categorie':
     st.dataframe(totals, hide_index=True, width='stretch')
     st.info('Seleziona una categoria nella barra laterale per vedere soltanto le sue vendite.')
 else:
-    st.subheader('📦 Annunci venduti' if section == '📦 Annunci venduti' else '🕒 Ultimi annunci venduti')
+    st.subheader('📦 Annunci venduti')
 if section != '🏷️ Categorie' and not count:
     st.info('Nessun risultato per i filtri selezionati.')
 elif section != '🏷️ Categorie':
@@ -148,7 +148,7 @@ elif section != '🏷️ Categorie':
         columns = {r[1] for r in con.execute('PRAGMA table_info(sales)')}
     start_col = 'posted_at' if 'posted_at' in columns else ('listed_at' if 'listed_at' in columns else None)
     select_start = ', ' + start_col + ' AS listed_at' if start_col else ', NULL AS listed_at'
-    data = fetch('SELECT image, ended_at, title, sold_price, currency, url' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
+    data = fetch('SELECT image, ended_at, title, sold_price, currency, url, COALESCE((SELECT name FROM categories WHERE category_id=sales.category_id), sales.category_id, \'Senza categoria\') AS category_name' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
 
     def safe_link(raw):
         value = str(raw or '').strip()
@@ -179,17 +179,18 @@ elif section != '🏷️ Categorie':
         image_ok = urlparse(image_url).scheme == 'https'
         image_cell = f'<img src="{escape(image_url, quote=True)}" alt="Foto annuncio" loading="lazy">' if image_ok else '—'
         date_str = escape(str(item['ended_at'] or '—'))[:10]
+        category_str = escape(str(item['category_name'] or 'Senza categoria'))
         price_str = eur(item['sold_price'])
-        rows.append(f'<tr><td>{image_cell}</td><td>{title_cell}</td><td class="price">{price_str}</td><td>{date_str}</td><td>{sold_speed(item)}</td></tr>')
+        rows.append(f'<tr><td>{image_cell}</td><td>{title_cell}</td><td>{category_str}</td><td class="price">{price_str}</td><td>{date_str}</td><td>{sold_speed(item)}</td></tr>')
     html_table = ('<div class="mt-scroll"><table class="mt-sale-table"><thead><tr>'
-                  '<th>Foto</th><th>Annuncio (clicca per aprire)</th><th>Prezzo</th><th>Venduto il</th><th>🔥 Venduto in</th>'
+                  '<th>Foto</th><th>Annuncio (clicca per aprire)</th><th>Categoria</th><th>Prezzo</th><th>Venduto il</th><th>🔥 Venduto in</th>'
                   '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>')
     st.markdown(html_table, unsafe_allow_html=True)
     st.caption('🔥 Venduto in: calcolato solo quando è disponibile anche la data di pubblicazione. Al momento SoldComps ci restituisce la data di vendita, non la durata dell’inserzione.')
     st.caption(f'Pagina {current} di {pages} · {count:,} risultati · caricati solo {len(data)} annunci'.replace(',','.'))
     st.download_button('⬇️ Esporta questa pagina (CSV)', data=data.to_csv(index=False).encode('utf-8-sig'), file_name='venduti_ebay_pagina.csv', mime='text/csv')
 
-with st.expander('📈 Andamento dei venduti archiviati', expanded=(section == '📊 Dashboard')):
+with st.expander('📈 Andamento dei venduti archiviati', expanded=False):
     trends = fetch('SELECT substr(ended_at,1,10) giorno, COUNT(*) venduti FROM sales WHERE ' + where_sql + ' AND ended_at IS NOT NULL GROUP BY substr(ended_at,1,10) ORDER BY giorno', tuple(params))
     if not trends.empty:
         st.line_chart(trends, x='giorno', y='venduti', width='stretch')
