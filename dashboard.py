@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+from ebay_taxonomy import classify
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
@@ -125,17 +126,50 @@ k3.metric('💶 Prezzo medio', eur(summary['avg_price']))
 k4.metric('🏆 Prezzo più alto', eur(summary['high_price']))
 
 if section == '🏷️ Categorie':
-    st.subheader('🏷️ Categorie monitorate')
-    st.caption('Le categorie vengono mantenute separate nel database. Puoi aggiungerne altre in futuro senza cambiare la dashboard.')
-    totals = fetch('''SELECT c.category_id AS ID, c.name AS Categoria,
-                             COUNT(s.item_id) AS Venduti,
-                             ROUND(AVG(s.sold_price),2) AS "Prezzo medio €",
-                             ROUND(MAX(s.sold_price),2) AS "Prezzo massimo €"
-                      FROM categories c LEFT JOIN sales s
-                      ON s.category_id=c.category_id AND s.sold_price>=70
-                      GROUP BY c.category_id,c.name ORDER BY Venduti DESC''')
-    st.dataframe(totals, hide_index=True, width='stretch')
-    st.info('Seleziona una categoria nella barra laterale per vedere soltanto le sue vendite.')
+    st.subheader('🧩 Brand / famiglie / modelli')
+    st.caption('Classificazione indicativa dai titoli; non modifica la raccolta per categoria né consuma crediti API.')
+    @st.cache_data(ttl=60, show_spinner=False)
+    def taxonomy_data():
+        raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
+                         s.title, s.sold_price, s.ended_at, s.url
+                         FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
+                         WHERE s.sold_price>=70""")
+        if raw.empty:
+            return raw
+        parsed = [classify(r.category_id,r.title) for r in raw.itertuples(index=False)]
+        raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = pd.DataFrame(parsed,index=raw.index)
+        return raw
+
+    taxonomy = taxonomy_data()
+    if selected_category is not None and not taxonomy.empty:
+        taxonomy = taxonomy[taxonomy['category_id'].astype(str) == str(selected_category)]
+    if taxonomy.empty:
+        st.info('Nessun venduto disponibile per questa categoria.')
+    else:
+        categories = sorted(taxonomy['category_name'].dropna().unique().tolist())
+        cat_name = st.selectbox('📂 Categoria eBay',categories,key='radar_category')
+        subset = taxonomy[taxonomy['category_name']==cat_name]
+        brand_stats = subset.groupby('Brand / Editore').agg(Venduti=('item_id','count'),Mediana=('sold_price','median')).reset_index().sort_values('Venduti',ascending=False)
+        brand_names = brand_stats['Brand / Editore'].tolist()
+        brand_choice = st.selectbox('🏷️ Brand / editore',brand_names,key='radar_brand')
+        subset = subset[subset['Brand / Editore']==brand_choice]
+        family_stats = subset.groupby('Famiglia / Serie').agg(Venduti=('item_id','count'),Mediana=('sold_price','median')).reset_index().sort_values('Venduti',ascending=False)
+        family_choice = st.selectbox('🧩 Famiglia / serie',family_stats['Famiglia / Serie'].tolist(),key='radar_family')
+        subset = subset[subset['Famiglia / Serie']==family_choice]
+        model_stats = subset.groupby('Modello / Edizione').agg(Venduti=('item_id','count'),Mediana=('sold_price','median')).reset_index().sort_values('Venduti',ascending=False)
+        model_choice = st.selectbox('📚 Modello / edizione',model_stats['Modello / Edizione'].tolist(),key='radar_model')
+        subset = subset[subset['Modello / Edizione']==model_choice]
+        a1,a2,a3=st.columns(3)
+        a1.metric('📦 Venduti',len(subset))
+        a2.metric('💶 Mediana',eur(subset['sold_price'].median()))
+        a3.metric('📊 Prezzo medio',eur(subset['sold_price'].mean()))
+        st.caption('Seleziona in sequenza categoria, brand, famiglia e modello per esplorare i venduti. I valori non identificati non vengono indovinati.')
+        result = subset.sort_values('ended_at',ascending=False).head(100).copy()
+        result = result.rename(columns={'title':'Annuncio','sold_price':'Prezzo €','ended_at':'Venduto il','url':'Apri su eBay'})
+        st.dataframe(result[['Annuncio','Prezzo €','Venduto il','Apri su eBay']],hide_index=True,width='stretch',
+                     column_config={'Apri su eBay':st.column_config.LinkColumn('Inserzione',display_text='Apri ↗'),
+                                    'Prezzo €':st.column_config.NumberColumn('Prezzo €',format='%.2f €')})
+        st.caption('Massimo 100 annunci in questa vista; l’archivio completo resta in Annunci venduti.')
 else:
     st.subheader('📦 Annunci venduti')
 if section != '🏷️ Categorie' and not count:
