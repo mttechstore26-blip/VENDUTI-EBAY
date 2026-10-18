@@ -131,7 +131,7 @@ if section == '🏷️ Categorie':
     @st.cache_data(ttl=60, show_spinner=False)
     def taxonomy_data():
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
-                         s.title, s.sold_price, s.ended_at, s.url
+                         s.title, s.sold_price, s.ended_at, s.url, s.image
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
                          WHERE s.sold_price>=70""")
         if raw.empty:
@@ -195,10 +195,14 @@ if section == '🏷️ Categorie':
                 p=urlparse(url)
                 valid=p.scheme=='https' and bool(p.hostname) and (p.hostname=='ebay.it' or p.hostname.endswith('.ebay.it') or p.hostname=='ebay.com' or p.hostname.endswith('.ebay.com'))
                 title_html=f'<a href="{escape(url,quote=True)}" target="_blank" rel="noopener noreferrer">{title}</a>' if valid else title
+                image_url=str(item.image or '')
+                img_parsed=urlparse(image_url)
+                image_valid=img_parsed.scheme=='https' and bool(img_parsed.hostname)
+                picture=f'<img src="{escape(image_url,quote=True)}" loading="lazy" alt="Foto annuncio">' if image_valid else '—'
                 date=pd.to_datetime(item.ended_at,errors='coerce',utc=True)
                 date_text=date.strftime('%d/%m/%Y') if pd.notna(date) else '—'
-                html_rows.append(f'<tr><td>{title_html}</td><td class="price">{eur(item.sold_price)}</td><td>—</td><td>{date_text}</td></tr>')
-            st.markdown('<div class="mt-scroll"><table class="mt-sale-table"><thead><tr><th>Titolo</th><th>Prezzo</th><th>Venduto in</th><th>Rilevato venduto</th></tr></thead><tbody>'+''.join(html_rows)+'</tbody></table></div>',unsafe_allow_html=True)
+                html_rows.append(f'<tr><td>{picture}</td><td>{title_html}</td><td class="price">{eur(item.sold_price)}</td><td>—</td><td>{date_text}</td></tr>')
+            st.markdown('<div class="mt-scroll"><table class="mt-sale-table"><thead><tr><th>Foto</th><th>Titolo</th><th>Prezzo</th><th>Venduto in</th><th>Rilevato venduto</th></tr></thead><tbody>'+''.join(html_rows)+'</tbody></table></div>',unsafe_allow_html=True)
             st.caption('Venduto in: N/D perché SoldComps non fornisce la data di pubblicazione. Rilevato venduto indica la data di chiusura eBay, non l’ora del rilevamento.')
             st.subheader('📈 Andamento prezzo')
             timeline=detail.copy()
