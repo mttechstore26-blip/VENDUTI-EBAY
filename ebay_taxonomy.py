@@ -89,15 +89,46 @@ def classify(category_id, title):
         return brand, family, model
     if str(category_id) in ("717", "233", "183446"):
         if str(category_id) == "183446":
+            # Priorità: accessori / minifigure / imballaggi non sono set completi.
+            # Successivamente riconosci il tema LEGO anche quando manca il nome della linea.
             groups = [
-                ("LEGO", "LEGO Star Wars", r"\blego\b.*star wars"),
-                ("LEGO", "LEGO Technic", r"\blego\b.*technic"),
-                ("LEGO", "LEGO City", r"\blego\b.*\bcity\b"),
-                ("LEGO", "LEGO Icons / Creator", r"\blego\b.*(?:icons?|creator|modular)"),
-                ("LEGO", "LEGO Ideas", r"\blego\b.*ideas"),
-                ("LEGO", "LEGO Harry Potter", r"\blego\b.*harry potter"),
-                ("LEGO", "LEGO Marvel / DC", r"\blego\b.*(?:marvel|batman|super heroes)"),
-                ("LEGO", "LEGO", r"\blego\b|\bduplo\b"),
+                ("LEGO", "LEGO — solo scatole / imballaggi", r"\b(?:solo\s+(?:imballaggio|scatola|box)|only\s+box|empty\s+box|scatola\s+vuota)\b"),
+                ("LEGO", "LEGO Minifigure / personaggi", r"\b(?:minifigur\w*|cmf|personaggi\s+lego|copricapo|prototype|prototipo)\b"),
+                ("LEGO", "LEGO BrickLink Designer Program", r"bricklink|\b9100\d{2}\b"),
+                ("LEGO", "LEGO Ninjago", r"ninjago|spinjitzu|\bzane\b.*(?:lego|9563)"),
+                ("LEGO", "LEGO Super Mario / Mario Kart", r"super mario|mario kart|bowser|\b7139[15]\b|\b71438\b|\b40787\b"),
+                ("LEGO", "LEGO Castle / Kingdoms", r"\bcastle\b|kingdoms|cavalieri|castello.*(?:lego|king)|\b(?:375|6090|6098|6080|70403)\b"),
+                ("LEGO", "LEGO Pirates", r"pirates|pirati|black seas barracuda|eldorado|cross bone clipper|\b(?:6285|6250|6276|6261)\b"),
+                ("LEGO", "LEGO Treni / Ferrovia", r"ferrovia|locomotiva|treno|santa fe|monorail|railway|\b(?:7740|7750|10020|10022)\b"),
+                ("LEGO", "LEGO Space / Classic Space", r"\b(?:ufo|classic space|interstellar starfighter)\b|\b6979\b"),
+                ("LEGO", "LEGO Star Wars", r"star wars|tie fighter|y.wing"),
+                ("LEGO", "LEGO Technic", r"\btechnic\b|\b42174\b"),
+                ("LEGO", "LEGO Speed Champions", r"speed champions|\b75913\b"),
+                ("LEGO", "LEGO Architecture", r"architecture|notre dame|farnsworth|neuschwanstein|piramide.*giza|\b(?:21009|21027|21058|21061|21063)\b"),
+                ("LEGO", "LEGO Art", r"\blego art\b|\b31212\b|via lattea|milchstra"),
+                ("LEGO", "LEGO Ideas", r"\bideas?\b|willy wonka|apollo saturn|\b(?:21360|92176)\b"),
+                ("LEGO", "LEGO Icons / Creator Expert", r"\bicons?\b|creator expert|titanic|winter village|\b(?:10294|10199)\b"),
+                ("LEGO", "LEGO The Lord of the Rings / Hobbit", r"lord of the rings|\blotr\b|hobbit|orthanc|elrond|moria|lake.town|\b(?:10237|79006|79013|9473)\b"),
+                ("LEGO", "LEGO The Legend of Zelda", r"zelda|deku tree|\b77092\b"),
+                ("LEGO", "LEGO Disney / Pixar", r"\bdisney\b|pixar|toy story|topolino|minnie|bella e.*bestia|\b(?:43179|43263|43301)\b"),
+                ("LEGO", "LEGO Marvel", r"\bmarvel\b|avengers|iron man|lex luthor|\b(?:76125|76097)\b"),
+                ("LEGO", "LEGO Batman / DC", r"\bbatman\b|\bbatmobile\b|\bdc comics\b|\btumbler\b|\b(?:76240|76112|76328)\b"),
+                ("LEGO", "LEGO Harry Potter", r"harry potter|gringotts|\b40598\b"),
+                ("LEGO", "LEGO Minecraft", r"minecraft|\b21137\b"),
+                ("LEGO", "LEGO Jurassic World", r"jurassic|t.rex|\b(?:76956|75929)\b"),
+                ("LEGO", "LEGO Indiana Jones", r"indiana jones|\b7197\b"),
+                ("LEGO", "LEGO One Piece", r"one piece|\b75646\b"),
+                ("LEGO", "LEGO Bionicle", r"bionicle|lhikan|\b8811\b"),
+                ("LEGO", "LEGO Dimensions", r"\bdimensions\b|portal adventure time"),
+                ("LEGO", "LEGO Horizon", r"\bhorizon\b|tallneck|\b76989\b"),
+                ("LEGO", "LEGO Teenage Mutant Ninja Turtles", r"ninja turtles|shellraiser|\btmnt\b|\b79104\b"),
+                ("LEGO", "LEGO Avatar", r"\bavatar\b|tulkun|\b75579\b"),
+                ("LEGO", "LEGO DUPLO", r"\bduplo\b"),
+                ("LEGO", "LEGO City / Town", r"\bcity\b|classic town|legoland town|cargo center|strada principale|\b(?:6391|10041)\b"),
+                ("LEGO", "LEGO Education / WeDo", r"\bwedo\b|\beducation\b"),
+                ("LEGO", "LEGO Seasonal / Esclusivi", r"\bseasonal\b|capodanno cinese|calendario dell.avvento|\b(?:80101|4002023)\b"),
+                ("LEGO", "LEGO vintage / lotti misti", r"\bvintage\b|lotto.*lego|legoland.*\blotto\b|collezione.*lego"),
+                ("LEGO", "LEGO — altri set", r"\blego\b"),
                 ("Playmobil", "Playmobil", r"\bplaymobil\b"),
                 ("Meccano", "Meccano", r"\bmeccano\b"),
                 ("K'NEX", "K'NEX", r"\bk.?nex\b"),
@@ -135,7 +166,7 @@ def classify(category_id, title):
             ]
             fallback = "Altri giochi di società"
         brand, family = next(((brand, family) for brand, family, pat in groups if re.search(pat, t)), ("Non identificato", fallback))
-        code = re.search(r"\b(?:set|art\.?|cod\.?|mod\.?)\s*[:#-]?\s*(\d{4,7})\b", t)
+        code = re.search(r"(?<!\\d)(\\d{4,6})(?!\\d)", t) if brand == "LEGO" else re.search(r"\\b(?:set|art\\.?|cod\\.?|mod\\.?)\\s*[:#-]?\\s*(\\d{4,7})\\b", t)
         model = code.group(1) if code else "Modello non identificato"
         if brand == "LEGO" and model == "Modello non identificato":
             lego_set = re.search(r"(?<!\d)(\d{5})(?!\d)", t)
