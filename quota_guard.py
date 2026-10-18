@@ -1,6 +1,6 @@
 """Quota-safe category-wide SoldComps scheduler.
 
-Five monitored categories every six hours (00,06,12,18).
+Six monitored categories every six hours (00,06,12,18).
 Respect monthly reserve and refuse extra-credit API charges.
 """
 import os
@@ -48,6 +48,7 @@ categories = [
     ("717", "Giocattoli d\u0027epoca", "100"),
     ("233", "Giochi di società", "100"),
     ("183446", "Costruzioni", "100"),
+    ("101376", "Bambole vintage", "160"),
 ]
 slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
