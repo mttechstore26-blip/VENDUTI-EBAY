@@ -79,7 +79,7 @@ with st.sidebar:
     selected_category = None if category_opt == 'Tutte le categorie' else category_opt
     st.divider()
     st.header('🔎 Filtri')
-    search = st.text_input('Cerca nel titolo', placeholder='Panini, 1978, Calciatori…', help='Questo filtro agisce solo sulla dashboard, non sulla raccolta eBay.')
+    search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
     period = st.selectbox('Periodo', ['Tutti', 'Ultimi 7 giorni', 'Ultimi 30 giorni', 'Ultimi 90 giorni', 'Ultimi 365 giorni'])
     condition = st.selectbox('Condizione', ['Tutte', 'Nuovo', 'Di seconda mano'])
     max_df = fetch('SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70')
@@ -99,9 +99,31 @@ if selected_category is not None:
     where.append('category_id = ?')
     params.append(selected_category)
 if search.strip():
-    where.append('LOWER(COALESCE(title, "")) LIKE ? ESCAPE "\\"')
-    escaped = search.lower().strip().replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
-    params.append(f'%{escaped}%')
+    # All words must occur, in any order. Accept common title variants.
+    import re
+    words = re.findall(r"[^\\s,;]+", search.casefold().strip())
+    for word in words:
+        variants = [word]
+        if word in ("mexico", "messico", "méxico"):
+            variants = ["mexico", "messico", "méxico"]
+        elif word == "86":
+            variants = ["86", "1986"]
+        elif word == "78":
+            variants = ["78", "1978"]
+        elif word == "82":
+            variants = ["82", "1982"]
+        elif word == "90":
+            variants = ["90", "1990"]
+        elif word == "94":
+            variants = ["94", "1994"]
+        elif word == "98":
+            variants = ["98", "1998"]
+        clauses = []
+        for variant in variants:
+            clauses.append('LOWER(COALESCE(title, "")) LIKE ? ESCAPE "\\\\"')
+            safe = variant.replace('\\\\','\\\\\\\\').replace('%','\\\\%').replace('_','\\\\_')
+            params.append('%'+safe+'%')
+        where.append('(' + ' OR '.join(clauses) + ')')
 if period != 'Tutti':
     days = {'Ultimi 7 giorni':7,'Ultimi 30 giorni':30,'Ultimi 90 giorni':90,'Ultimi 365 giorni':365}[period]
     where.append("date(ended_at) >= date('now', ?)")
@@ -124,6 +146,9 @@ k1.metric('📦 Venduti trovati', f'{count:,}'.replace(',','.'))
 k2.metric('📊 Prezzo mediano', eur(median))
 k3.metric('💶 Prezzo medio', eur(summary['avg_price']))
 k4.metric('🏆 Prezzo più alto', eur(summary['high_price']))
+
+if search.strip() and section != '🏷️ Categorie':
+    st.info(f'🔎 Ricerca: **{search}** · **{count}** venduti trovati nell’archivio eBay. I risultati dipendono dalle vendite già raccolte.')
 
 if section == '🏷️ Categorie':
     st.subheader('🎯 Esplora una categoria')
