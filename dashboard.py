@@ -301,6 +301,22 @@ elif section != '🏷️ Categorie':
     st.caption('🔥 Venduto in: calcolato solo quando è disponibile anche la data di pubblicazione. Al momento SoldComps ci restituisce la data di vendita, non la durata dell’inserzione.')
     st.caption(f'Pagina {current} di {pages} · {count:,} risultati · caricati solo {len(data)} annunci'.replace(',','.'))
     st.download_button('⬇️ Esporta questa pagina (CSV)', data=data.to_csv(index=False).encode('utf-8-sig'), file_name='venduti_ebay_pagina.csv', mime='text/csv')
+    @st.cache_data(ttl=60, show_spinner=False)
+    def export_all_sales(filter_sql, filter_params):
+        return fetch(
+            'SELECT category_id, item_id, title, sold_price, currency, ended_at, condition, url, image '
+            'FROM sales WHERE ' + filter_sql + ' ORDER BY ended_at DESC, first_seen DESC',
+            filter_params,
+        )
+    if count:
+        all_sales=export_all_sales(where_sql, tuple(params))
+        st.download_button(
+            '📥 Esporta TUTTI i risultati filtrati (CSV) · ' + str(count) + ' annunci',
+            data=all_sales.to_csv(index=False).encode('utf-8-sig'),
+            file_name='venduti_ebay_tutti_risultati.csv',
+            mime='text/csv',
+            key='export_all_sold_results',
+        )
 
 with st.expander('📈 Andamento dei venduti archiviati', expanded=False):
     trends = fetch('SELECT substr(ended_at,1,10) giorno, COUNT(*) venduti FROM sales WHERE ' + where_sql + ' AND ended_at IS NOT NULL GROUP BY substr(ended_at,1,10) ORDER BY giorno', tuple(params))
