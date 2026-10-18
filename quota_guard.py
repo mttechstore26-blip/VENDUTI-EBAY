@@ -1,6 +1,6 @@
-"""Quota-safe SoldComps scheduler for two category-wide monitors.
+"""Quota-safe SoldComps scheduler for three category-wide monitors.
 
-The existing six-hour systemd timer remains enabled; two slots per day
+The existing six-hour systemd timer remains enabled; two daily slots and one alternate-day slot
 make an API call, keeping the free plan viable until its monthly reset.
 """
 import os
@@ -17,13 +17,14 @@ key = os.getenv("SOLDCOMPS_API_KEY", "").strip()
 if not key or key == "sc_INSERISCI_QUI":
     sys.exit("ERRORE: chiave SoldComps non configurata")
 
-# Server timezone determines calendar slots; 06:00 and 18:00 do not query.
+# Server timezone determines calendar slots. Third category runs at 18:00 on even dates to protect the 100-request monthly plan.
 hour = datetime.now().hour
 slots = {
     0: ("141755", "Album sportivi", "70"),
     12: ("63", "Fumetti e memorabilia", "100"),
+    18: ("220", "Giocattoli e modellismo", "70"),
 }
-if hour not in slots:
+if hour not in slots or (hour == 18 and datetime.now().day % 2 != 0):
     print(f"Ore {hour:02d}:00: nessuna raccolta programmata (quota gratuita conservata).")
     sys.exit(0)
 
