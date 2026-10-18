@@ -84,7 +84,7 @@ with st.sidebar:
     search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
     period = st.selectbox('Periodo', ['Tutti', 'Ultimi 7 giorni', 'Ultimi 30 giorni', 'Ultimi 90 giorni', 'Ultimi 365 giorni'])
     condition = st.selectbox('Condizione', ['Tutte', 'Nuovo', 'Di seconda mano'])
-    max_df = fetch('SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446')')
+    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446')")
     highest = int(max(70, max_df.iloc[0]['hi'] or 70))
     price_low = st.number_input('Prezzo minimo visualizzato (€)', min_value=70, max_value=max(70,highest), value=70, step=10)
     price_high = st.number_input('Prezzo massimo visualizzato (€)', min_value=int(price_low), value=max(highest,int(price_low)), step=20)
