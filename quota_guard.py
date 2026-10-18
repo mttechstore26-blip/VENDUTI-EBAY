@@ -1,9 +1,10 @@
 """Quota-safe category-wide SoldComps scheduler.
 
-All three monitored categories every six hours (00,06,12,18).
+Five monitored categories every six hours (00,06,12,18).
 Respect monthly reserve and refuse extra-credit API charges.
 """
 import os
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime
@@ -18,11 +19,35 @@ key = os.getenv("SOLDCOMPS_API_KEY", "").strip()
 if not key or key == "sc_INSERISCI_QUI":
     sys.exit("ERRORE: chiave SoldComps non configurata")
 
+# Retire legacy macro-category 220 once, including stored sales, with a database backup.
+def retire_legacy_category():
+    db = (ROOT / os.getenv("DB_PATH", "./data/ebay_sold.db")).resolve()
+    if not db.is_file():
+        return
+    backup_file = db.with_name(db.name + ".before_retire_220")
+    with sqlite3.connect(db, timeout=20) as con:
+        if not con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='categories'").fetchone():
+            return
+        exists = con.execute("SELECT 1 FROM categories WHERE category_id='220'").fetchone()
+        if not exists:
+            return
+        if not backup_file.exists():
+            with sqlite3.connect(backup_file) as backup:
+                con.backup(backup)
+        deleted = con.execute("DELETE FROM sales WHERE category_id='220'").rowcount
+        con.execute("DELETE FROM categories WHERE category_id='220'")
+        con.commit()
+        print(f"Rimossa categoria 220 e {deleted} vendite obsolete; backup: {backup_file.name}", flush=True)
+
+retire_legacy_category()
+
 hour = datetime.now().hour
 categories = [
     ("141755", "Album sportivi", "70"),
     ("63", "Fumetti e memorabilia", "100"),
-    ("220", "Giocattoli e modellismo", "100"),
+    ("717", "Giocattoli d\u0027epoca", "100"),
+    ("233", "Giochi di società", "100"),
+    ("183446", "Costruzioni", "100"),
 ]
 slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
