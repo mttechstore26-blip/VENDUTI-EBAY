@@ -29,7 +29,7 @@ div[data-testid="stDataFrame"] {border-radius:15px;overflow:hidden}
 .mt-sale-table tr:hover td{background:#f8fafc}
 .mt-sale-table a{color:#1d4ed8;text-decoration:none;font-weight:650}
 .mt-sale-table a:hover{text-decoration:underline}
-.mt-sale-table img{width:50px;height:58px;object-fit:contain;border-radius:9px;background:#f8fafc}
+.mt-sale-table img{width:112px;height:124px;object-fit:contain;border-radius:12px;background:#f8fafc;display:block}
 .mt-sale-table .price{font-weight:750;white-space:nowrap}
 .mt-scroll{overflow:auto;border-radius:16px}
 .mt-sale-table .muted{color:#94a3b8}
@@ -148,7 +148,7 @@ elif section != '🏷️ Categorie':
         columns = {r[1] for r in con.execute('PRAGMA table_info(sales)')}
     start_col = 'posted_at' if 'posted_at' in columns else ('listed_at' if 'listed_at' in columns else None)
     select_start = ', ' + start_col + ' AS listed_at' if start_col else ', NULL AS listed_at'
-    data = fetch('SELECT image, ended_at, title, sold_price, currency, shipping_price, condition, url' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
+    data = fetch('SELECT image, ended_at, title, sold_price, currency, url' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
 
     def safe_link(raw):
         value = str(raw or '').strip()
@@ -180,11 +180,9 @@ elif section != '🏷️ Categorie':
         image_cell = f'<img src="{escape(image_url, quote=True)}" alt="Foto annuncio" loading="lazy">' if image_ok else '—'
         date_str = escape(str(item['ended_at'] or '—'))[:10]
         price_str = eur(item['sold_price'])
-        shipping_str = eur(item['shipping_price']) if pd.notna(item['shipping_price']) else '—'
-        condition_str = escape(str(item['condition'])) if pd.notna(item['condition']) else '—'
-        rows.append(f'<tr><td>{image_cell}</td><td>{title_cell}</td><td class="price">{price_str}</td><td>{date_str}</td><td>{sold_speed(item)}</td><td>{shipping_str}</td><td>{condition_str}</td></tr>')
+        rows.append(f'<tr><td>{image_cell}</td><td>{title_cell}</td><td class="price">{price_str}</td><td>{date_str}</td><td>{sold_speed(item)}</td></tr>')
     html_table = ('<div class="mt-scroll"><table class="mt-sale-table"><thead><tr>'
-                  '<th>Foto</th><th>Annuncio (clicca per aprire)</th><th>Prezzo</th><th>Venduto il</th><th>🔥 Venduto in</th><th>Spedizione</th><th>Condizione</th>'
+                  '<th>Foto</th><th>Annuncio (clicca per aprire)</th><th>Prezzo</th><th>Venduto il</th><th>🔥 Venduto in</th>'
                   '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>')
     st.markdown(html_table, unsafe_allow_html=True)
     st.caption('🔥 Venduto in: calcolato solo quando è disponibile anche la data di pubblicazione. Al momento SoldComps ci restituisce la data di vendita, non la durata dell’inserzione.')
