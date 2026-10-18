@@ -154,6 +154,23 @@ if section == '🏷️ Categorie':
             return raw
         parsed = [classify(r.category_id,r.title) for r in raw.itertuples(index=False)]
         raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = pd.DataFrame(parsed,index=raw.index)
+        # Promote repeated identifiable models to their own clickable family.
+        # Keep the source family as a grouping key: comic issue 1 in one series
+        # must never be mixed with issue 1 in another series.
+        valid = (~raw['Modello / Edizione'].str.contains('non identificat',case=False,na=True)
+                 & raw['Modello / Edizione'].notna())
+        counts = raw.loc[valid].groupby(
+            ['category_id','Famiglia / Serie','Modello / Edizione'],dropna=False
+        )['item_id'].transform('size')
+        repeated = counts[counts >= 2].index
+        if len(repeated):
+            source_family = raw.loc[repeated,'Famiglia / Serie'].astype(str)
+            model = raw.loc[repeated,'Modello / Edizione'].astype(str)
+            lego = (raw.loc[repeated,'Brand / Editore'].eq('LEGO')
+                    & model.str.fullmatch(r'\\d{4,6}'))
+            promoted = source_family + ' — ' + model
+            promoted.loc[lego] = 'LEGO ' + model.loc[lego]
+            raw.loc[repeated,'Famiglia / Serie'] = promoted
         return raw
 
     taxonomy = taxonomy_data()
