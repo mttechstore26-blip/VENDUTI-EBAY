@@ -57,13 +57,13 @@ def classify(category_id, title):
             (2022, "Qatar", r"qatar|quatar"),
             (2026, "USA/Canada/Messico", r"world cup|mondial|fifa|mexico|messico"),
         ]
-        cup_context = bool(re.search(r"world\\s*cup|coppa del mondo|mondial\\w*|mundial\\w*|\\bwc\\b|\\bwm\\b|\\bfifa\\b|calciatori", t))
+        cup_context = bool(re.search(r"world\s*cup|coppa del mondo|mondial\w*|mundial\w*|\bwc\b|\bwm\b|\bfifa\b|calciatori", t))
         world_family = None
         for year_n, host, host_pattern in editions:
             short = str(year_n)[-2:]
-            has_host = bool(re.search(r"\\b(?:" + host_pattern + r")\\b", t))
-            year_match = bool(re.search(r"(?<!\\d)" + str(year_n) + r"(?!\\d)", t))
-            shorthand = bool(re.search(r"(?<!\\d)" + short + r"(?!\\d)", t))
+            has_host = bool(re.search(r"\b(?:" + host_pattern + r")\b", t))
+            year_match = bool(re.search(r"(?<!\d)" + str(year_n) + r"(?!\d)", t))
+            shorthand = bool(re.search(r"(?<!\d)" + short + r"(?!\d)", t))
             # Two-digit shorthand only counts alongside host and/or World Cup wording.
             if (has_host and (year_match or shorthand)) or (year_match and cup_context):
                 world_family = f"Mondiali {year_n} — {host}"
