@@ -16,16 +16,16 @@ DB = (Path(__file__).resolve().parent / os.getenv('DB_PATH', './data/ebay_sold.d
 
 st.markdown('''<style>
 .stApp {background:radial-gradient(circle at 8% 0%,#e8efff 0%,transparent 31%),linear-gradient(180deg,#fbfdff,#f0f4fa)}
-.block-container {max-width:1500px;padding-top:1.3rem}
+.block-container {max-width:1650px;padding-top:1.3rem} html,body,[data-testid='stAppViewContainer'] {font-size:17px!important} .stMarkdown p,.stCaption,.stSelectbox label,.stTextInput label,.stNumberInput label,.stRadio label {font-size:16px!important} section[data-testid='stSidebar'] {min-width:285px} div[data-testid='stMetricLabel']{font-size:17px} div[data-testid='stMetricValue']{font-size:31px} div[data-testid='stDataFrame']{font-size:16px} button, input,select{font-size:16px!important}
 h1,h2,h3 {letter-spacing:-.035em;color:#0f172a}
 div[data-testid="stMetric"] {background:#ffffffde;border:1px solid #e2e8f0;border-radius:19px;padding:18px 20px;box-shadow:0 9px 27px #0f172a0a}
 div[data-testid="stMetric"]:before {content:"";display:block;height:3px;background:linear-gradient(90deg,#2563eb,#7c3aed);margin:-18px -20px 13px;border-radius:19px 19px 0 0}
 div[data-testid="stDataFrame"] {border-radius:15px;overflow:hidden}
 .mt-hero {padding:25px 29px;color:white;border-radius:24px;background:radial-gradient(circle at 93% 10%,#564cba 0%,transparent 34%),linear-gradient(125deg,#101a33,#1e3566 65%,#312e81);box-shadow:0 15px 35px #0f172a20;margin-bottom:16px}
-.mt-title {font-size:30px;font-weight:850;letter-spacing:-1px}.mt-subtitle{color:#cad4e8;font-size:14px;margin-top:6px}
+.mt-title {font-size:37px;font-weight:850;letter-spacing:-1px}.mt-subtitle{color:#cad4e8;font-size:17px;margin-top:6px}
 
-.mt-sale-table{width:100%;border-collapse:separate;border-spacing:0;background:white;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;font-size:13px}
-.mt-sale-table th{background:#f1f5f9;color:#475569;font-size:12px;text-align:left;padding:13px 10px;position:sticky;top:0}
+.mt-sale-table{width:100%;border-collapse:separate;border-spacing:0;background:white;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;font-size:16px}
+.mt-sale-table th{background:#f1f5f9;color:#475569;font-size:15px;text-align:left;padding:13px 10px;position:sticky;top:0}
 .mt-sale-table td{padding:10px;border-top:1px solid #e9edf5;vertical-align:middle;color:#334155}
 .mt-sale-table tr:hover td{background:#f8fafc}
 .mt-sale-table a{color:#1d4ed8;text-decoration:none;font-weight:650}
@@ -126,8 +126,8 @@ k3.metric('💶 Prezzo medio', eur(summary['avg_price']))
 k4.metric('🏆 Prezzo più alto', eur(summary['high_price']))
 
 if section == '🏷️ Categorie':
-    st.subheader('🧩 Brand / famiglie / modelli')
-    st.caption('Classificazione indicativa dai titoli; non modifica la raccolta per categoria né consuma crediti API.')
+    st.subheader('🎯 Esplora una categoria')
+    st.caption('Radar famiglie dei venduti eBay · stesso flusso di Venduti Subito')
     @st.cache_data(ttl=60, show_spinner=False)
     def taxonomy_data():
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
@@ -147,29 +147,53 @@ if section == '🏷️ Categorie':
         st.info('Nessun venduto disponibile per questa categoria.')
     else:
         categories = sorted(taxonomy['category_name'].dropna().unique().tolist())
-        cat_name = st.selectbox('📂 Categoria eBay',categories,key='radar_category')
+        cat_name = st.selectbox('Categoria',categories,key='radar_category')
         subset = taxonomy[taxonomy['category_name']==cat_name]
-        brand_stats = subset.groupby('Brand / Editore').agg(Venduti=('item_id','count'),Mediana=('sold_price','median')).reset_index().sort_values('Venduti',ascending=False)
-        brand_names = brand_stats['Brand / Editore'].tolist()
-        brand_choice = st.selectbox('🏷️ Brand / editore',brand_names,key='radar_brand')
-        subset = subset[subset['Brand / Editore']==brand_choice]
-        family_stats = subset.groupby('Famiglia / Serie').agg(Venduti=('item_id','count'),Mediana=('sold_price','median')).reset_index().sort_values('Venduti',ascending=False)
-        family_choice = st.selectbox('🧩 Famiglia / serie',family_stats['Famiglia / Serie'].tolist(),key='radar_family')
-        subset = subset[subset['Famiglia / Serie']==family_choice]
-        model_stats = subset.groupby('Modello / Edizione').agg(Venduti=('item_id','count'),Mediana=('sold_price','median')).reset_index().sort_values('Venduti',ascending=False)
-        model_choice = st.selectbox('📚 Modello / edizione',model_stats['Modello / Edizione'].tolist(),key='radar_model')
-        subset = subset[subset['Modello / Edizione']==model_choice]
-        a1,a2,a3=st.columns(3)
-        a1.metric('📦 Venduti',len(subset))
-        a2.metric('💶 Mediana',eur(subset['sold_price'].median()))
-        a3.metric('📊 Prezzo medio',eur(subset['sold_price'].mean()))
-        st.caption('Seleziona in sequenza categoria, brand, famiglia e modello per esplorare i venduti. I valori non identificati non vengono indovinati.')
-        result = subset.sort_values('ended_at',ascending=False).head(100).copy()
-        result = result.rename(columns={'title':'Annuncio','sold_price':'Prezzo €','ended_at':'Venduto il','url':'Apri su eBay'})
-        st.dataframe(result[['Annuncio','Prezzo €','Venduto il','Apri su eBay']],hide_index=True,width='stretch',
-                     column_config={'Apri su eBay':st.column_config.LinkColumn('Inserzione',display_text='Apri ↗'),
-                                    'Prezzo €':st.column_config.NumberColumn('Prezzo €',format='%.2f €')})
-        st.caption('Massimo 100 annunci in questa vista; l’archivio completo resta in Annunci venduti.')
+        st.subheader('🧩 Brand / famiglie / modelli')
+        st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
+        group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
+        family_stats=(subset.groupby(group_level,dropna=False)
+                 .agg(Venduti=('item_id','size'), Prezzo_medio=('sold_price','mean'), Prezzo_mediano=('sold_price','median'))
+                 .reset_index().sort_values('Venduti',ascending=False).reset_index(drop=True))
+        family_stats=family_stats.rename(columns={group_level:'Famiglia', 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
+        family_stats['Prezzo medio €']=family_stats['Prezzo medio €'].round(2)
+        family_stats['Prezzo mediano €']=family_stats['Prezzo mediano €'].round(2)
+        family_stats['Trend 30 gg']='N/D'
+        family_stats['Tempo vendita']='N/D'
+        family_stats=family_stats[['Famiglia','Venduti','Trend 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
+        state=st.dataframe(
+            family_stats, hide_index=True, width='stretch',
+            height=min(660, 60 + 42*len(family_stats)),
+            on_select='rerun', selection_mode='multi-row',
+            key='ebay_family_table',
+            column_config={'Famiglia':st.column_config.TextColumn('Famiglia',width='large'),
+                           'Venduti':st.column_config.NumberColumn('Venduti'),
+                           'Prezzo medio €':st.column_config.NumberColumn('Prezzo medio €',format='%.2f €'),
+                           'Prezzo mediano €':st.column_config.NumberColumn('Prezzo mediano €',format='%.2f €')})
+        selected_indices=state.selection.rows
+        chosen=family_stats.iloc[selected_indices]['Famiglia'].tolist() if selected_indices else []
+        selected_data=subset[subset[group_level].isin(chosen)] if chosen else subset.iloc[0:0]
+        if not chosen:
+            st.info('👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
+        else:
+            st.caption('📌 Selezionate: ' + ', '.join(chosen))
+            c1,c2,c3,c4=st.columns(4)
+            c1.metric('📦 Venduti',f'{len(selected_data):,}'.replace(',','.'))
+            c2.metric('💰 Prezzo medio',eur(selected_data['sold_price'].mean()))
+            c3.metric('🎯 Prezzo mediano',eur(selected_data['sold_price'].median()))
+            c4.metric('🔥 Tempo mediano','N/D')
+            st.caption('Per eBay il tempo di vendita non è disponibile senza la data iniziale dell’inserzione.')
+            detail=selected_data.sort_values('ended_at',ascending=False).copy()
+            detail=detail.rename(columns={'title':'Annuncio','sold_price':'Prezzo €','ended_at':'Venduto il','url':'Apri su eBay'})
+            st.subheader('📋 Annunci delle famiglie selezionate')
+            st.dataframe(detail[['Annuncio','Prezzo €','Venduto il','Apri su eBay']].head(100),
+                hide_index=True,width='stretch',column_config={
+                'Apri su eBay':st.column_config.LinkColumn('Inserzione',display_text='Apri ↗'),
+                'Prezzo €':st.column_config.NumberColumn('Prezzo €',format='%.2f €')})
+            st.download_button('⬇️ Esporta tutti gli annunci della selezione (CSV)',
+                data=detail.to_csv(index=False).encode('utf-8-sig'),
+                file_name='venduti_ebay_famiglie.csv',mime='text/csv')
+        st.caption('Trend e velocità non sono stimati da dati insufficienti; una volta raccolta una serie storica adeguata potremo calcolarli.')
 else:
     st.subheader('📦 Annunci venduti')
 if section != '🏷️ Categorie' and not count:
