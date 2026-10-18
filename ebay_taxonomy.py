@@ -87,6 +87,32 @@ def classify(category_id, title):
         year = re.search(r"\b(19[5-9]\d|20[0-2]\d)(?:\s*[/\-]\s*(?:\d{2}|20\d{2}))?\b",t)
         model = year.group(0) if year else "Anno / edizione non identificato"
         return brand, family, model
+    if str(category_id) == "101376":
+        families = [
+            ("Furga", "Furga — vintage", r"\bfurga\b"),
+            ("Lenci", "Lenci — vintage", r"\blenci\b"),
+            ("Sebino", "Cicciobello / Sebino vintage", r"cicciobello|\bsebino\b"),
+            ("Migliorati", "Migliorati — vintage", r"\bmigliorati\b"),
+            ("Mattel", "Barbie — vintage / collezione", r"\bbarbie\b"),
+            ("Mattel", "Monster High", r"monster high|draculaura|frankie stein"),
+            ("MGA", "Bratz", r"\bbratz\b"),
+            ("Galoob", "Polly Pocket vintage", r"polly pocket"),
+            ("Mattel", "Rainbow Brite / Iridella", r"rainbow brite|iridella"),
+            ("Ideal", "Bambole Ideal", r"\bideal\b"),
+            ("Ratti", "Ratti — vintage", r"\bratti\b"),
+            ("Famosa", "Famosa / Nancy vintage", r"\bfamosa\b|\bnancy\b"),
+            ("Hasbro", "My Little Pony vintage", r"my little pony|\bmlp\b"),
+            ("Vari", "Bambole di porcellana", r"porcellana|porcelain|bisque"),
+            ("Vari", "Bambole antiche / celluloide", r"celluloide|celluloid|antique doll"),
+            ("Vari", "Bambole di pezza", r"bambol[ae] di pezza|rag doll"),
+            ("Vari", "Lotti misti di bambole", r"\blotto\b|collezione.*bambol"),
+            ("Vari", "Accessori / vestiti / ricambi", r"solo vestito|solo abito|only clothes|accessori|ricambi|parti di ricambio"),
+        ]
+        brand, family = next(((b, name) for b, name, pat in families if re.search(pat, t)),
+                             ("Non identificato", "Altre bambole vintage"))
+        year = re.search(r"(?<!\d)(19[3-9]\d|20[0-2]\d)(?!\d)", t)
+        model = year.group(1) if year else "Modello non identificato"
+        return brand, family, model
     if str(category_id) in ("717", "233", "183446"):
         if str(category_id) == "183446":
             # Priorità: accessori / minifigure / imballaggi non sono set completi.
