@@ -19,7 +19,39 @@ def classify(category_id, title):
             ("Olimpiadi",r"olimpiad|olympic"),
             ("Pokémon",r"pokemon|pokémon"),
         ]
-        family = next((b for b,p in families if re.search(p,t)), "Altri album e figurine")
+        # Serie specifiche prima dei raggruppamenti generici.
+        specific = [
+            ("FIFA 365", r"fifa\\s*365"),
+            ("Dylan Dog", r"dylan\\s*dog"),
+            ("Harry Potter", r"harry\\s*potter"),
+            ("Corto Maltese", r"corto\\s*maltese"),
+            ("I Simpson", r"simpsons|\\bsimpson\\b"),
+            ("Flintstones", r"flintstones|bedrock bowl"),
+            ("Principessa Sissi", r"principessa sissi"),
+            ("Amici Cucciolotti", r"amici cucciolotti"),
+            ("One Piece", r"one\\s*piece"),
+            ("Tour de France / Ciclismo", r"tour de france|eddy merckx|ciclosport|ciclismo"),
+            ("Champions League / UCL", r"champions league|champions of europe|\\bucc\\b|\\buefa\\b.*(?:champions|club)"),
+            ("FIFA World Cup / Mondiali", r"world\\s*cup|\\bwc\\b|\\bwm\\b|\\bmundial\\w*\\b|mondial\\w*|south africa 2010|qatar 2022|mexico 70|mexico 86|argentina 78|espa(?:na|ña) 82|usa 94|france 98|russia 2018|germany 2006|brasil 2014|m[üu]nchen\\s*74|korea japan 2002|fifa cup 2026|coppa del mondo"),
+            ("Europei calcio", r"\\beuro(?:pa)?\\s*(?:80|84|96|200[048]|201[26]|202[048])\\b|\\buefa\\s*euro|campionato europeo"),
+            ("Calciatori / Campionati", r"supercalcio|\\bcalciatori\\b|campionato italiano|serie\\s*[a-c]\\b|foot france|la liga|\\bvoetbal\\b|divisione\\s*[12]"),
+            ("Sport / Campioni dello sport", r"campioni(?:ssimi)? dello sport|olympia|giochi olimpici|olimpiad|olympic|\\bmunchen\\s*72"),
+            ("WWE / Wrestling", r"\\bwwe\\b|smackdown"),
+            ("X-Files", r"x[ -]?files?"),
+        ]
+        family = next((b for b,p in specific if re.search(p,t)), None)
+        if family is None:
+            family = next((b for b,p in families if re.search(p,t)), None)
+        # Se non riconosciamo la serie, distinguiamo il formato dell'articolo.
+        if family is None:
+            formats = [
+                ("Box / display / bustine", r"\\bbox\\b|display|bustina|\\bpacks?\\b|confezioni|packet"),
+                ("Card autografate / certificate", r"\\bpsa\\b|\\bcgc\\b|autograph|\\bauto\\b|rookie|\\bcard\\b|\\bcarta\\b"),
+                ("Figurine singole / lotti", r"figurina|figurine|\\bstickers?\\b|adesiv\\w*|\\blotto\\b"),
+                ("Album e set completi", r"\\balbum\\b|\\bset completo\\b|raccolta completa"),
+            ]
+            family = next((b for b,p in formats if re.search(p,t)), "Altri album e figurine")
+
         year = re.search(r"\b(19[5-9]\d|20[0-2]\d)(?:\s*[/\-]\s*(?:\d{2}|20\d{2}))?\b",t)
         model = year.group(0) if year else "Anno / edizione non identificato"
         return brand, family, model
