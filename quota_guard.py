@@ -1,7 +1,7 @@
 """Quota-safe category-wide SoldComps scheduler.
 
-Giocattoli e modellismo every six hours (00,06,12,18).
-Other categories retain their existing daily slots. Respect monthly reserve.
+All three monitored categories every six hours (00,06,12,18).
+Respect monthly reserve and refuse extra-credit API charges.
 """
 import os
 import subprocess
@@ -19,12 +19,12 @@ if not key or key == "sc_INSERISCI_QUI":
     sys.exit("ERRORE: chiave SoldComps non configurata")
 
 hour = datetime.now().hour
-slots = {
-    0: [("141755", "Album sportivi", "70"), ("220", "Giocattoli e modellismo", "100")],
-    6: [("220", "Giocattoli e modellismo", "100")],
-    12: [("63", "Fumetti e memorabilia", "100"), ("220", "Giocattoli e modellismo", "100")],
-    18: [("220", "Giocattoli e modellismo", "100")],
-}
+categories = [
+    ("141755", "Album sportivi", "70"),
+    ("63", "Fumetti e memorabilia", "100"),
+    ("220", "Giocattoli e modellismo", "100"),
+]
+slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
 if not jobs:
     print(f"Ore {hour:02d}: nessuna raccolta prevista.")
