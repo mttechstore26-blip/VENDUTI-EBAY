@@ -1,6 +1,8 @@
 """Venduti eBay: fast SQLite-backed Streamlit dashboard, category-wide collection unchanged."""
 import os
 import sqlite3
+from html import escape
+from urllib.parse import urlparse
 from pathlib import Path
 
 import pandas as pd
@@ -20,6 +22,18 @@ div[data-testid="stMetric"]:before {content:"";display:block;height:3px;backgrou
 div[data-testid="stDataFrame"] {border-radius:15px;overflow:hidden}
 .mt-hero {padding:25px 29px;color:white;border-radius:24px;background:radial-gradient(circle at 93% 10%,#564cba 0%,transparent 34%),linear-gradient(125deg,#101a33,#1e3566 65%,#312e81);box-shadow:0 15px 35px #0f172a20;margin-bottom:16px}
 .mt-title {font-size:30px;font-weight:850;letter-spacing:-1px}.mt-subtitle{color:#cad4e8;font-size:14px;margin-top:6px}
+
+.mt-sale-table{width:100%;border-collapse:separate;border-spacing:0;background:white;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;font-size:13px}
+.mt-sale-table th{background:#f1f5f9;color:#475569;font-size:12px;text-align:left;padding:13px 10px;position:sticky;top:0}
+.mt-sale-table td{padding:10px;border-top:1px solid #e9edf5;vertical-align:middle;color:#334155}
+.mt-sale-table tr:hover td{background:#f8fafc}
+.mt-sale-table a{color:#1d4ed8;text-decoration:none;font-weight:650}
+.mt-sale-table a:hover{text-decoration:underline}
+.mt-sale-table img{width:50px;height:58px;object-fit:contain;border-radius:9px;background:#f8fafc}
+.mt-sale-table .price{font-weight:750;white-space:nowrap}
+.mt-scroll{overflow:auto;border-radius:16px}
+.mt-sale-table .muted{color:#94a3b8}
+@media(max-width:900px){.mt-sale-table{min-width:980px}}
 </style>''', unsafe_allow_html=True)
 st.markdown('<div class="mt-hero"><div class="mt-title">📚 Venduti eBay</div><div class="mt-subtitle">MT TECH · Analisi per categorie · Raccolta senza parole chiave · Da 70 €</div></div>', unsafe_allow_html=True)
 
@@ -130,15 +144,50 @@ elif section != '🏷️ Categorie':
     pages = (count + page_size - 1) // page_size
     current = st.number_input('Pagina', min_value=1, max_value=pages, value=1, step=1)
     order = {'Venduti più recenti':'ended_at DESC, first_seen DESC', 'Prezzo crescente':'sold_price ASC, ended_at DESC', 'Prezzo decrescente':'sold_price DESC, ended_at DESC'}[sort]
-    data = fetch('SELECT image, ended_at, title, sold_price, currency, shipping_price, condition, url FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
-    data = data.rename(columns={'image':'Foto','ended_at':'Venduto il','title':'Annuncio','sold_price':'Prezzo €','currency':'Valuta','shipping_price':'Spedizione €','condition':'Condizione','url':'Apri su eBay'})
-    st.dataframe(data, hide_index=True, width='stretch', height=min(820, 80 + page_size*46), column_config={
-        'Foto':st.column_config.ImageColumn('Foto', width='small'),
-        'Annuncio':st.column_config.TextColumn('Annuncio', width='large'),
-        'Prezzo €':st.column_config.NumberColumn('Prezzo €', format='%.2f €'),
-        'Spedizione €':st.column_config.NumberColumn('Spedizione €', format='%.2f €'),
-        'Apri su eBay':st.column_config.LinkColumn('Inserzione', display_text='Apri ↗'),
-    })
+    with connect() as con:
+        columns = {r[1] for r in con.execute('PRAGMA table_info(sales)')}
+    start_col = 'posted_at' if 'posted_at' in columns else ('listed_at' if 'listed_at' in columns else None)
+    select_start = ', ' + start_col + ' AS listed_at' if start_col else ', NULL AS listed_at'
+    data = fetch('SELECT image, ended_at, title, sold_price, currency, shipping_price, condition, url' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
+
+    def safe_link(raw):
+        value = str(raw or '').strip()
+        parsed = urlparse(value)
+        if parsed.scheme != 'https' or not (parsed.hostname and (parsed.hostname == 'ebay.it' or parsed.hostname.endswith('.ebay.it') or parsed.hostname == 'ebay.com' or parsed.hostname.endswith('.ebay.com'))):
+            return ''
+        return escape(value, quote=True)
+
+    def sold_speed(row):
+        # A date of sale alone cannot determine how long a listing took to sell.
+        if pd.isna(row.get('listed_at')) or pd.isna(row.get('ended_at')):
+            return '<span class="muted" title="Data di pubblicazione non disponibile">—</span>'
+        start = pd.to_datetime(row['listed_at'], utc=True, errors='coerce')
+        end = pd.to_datetime(row['ended_at'], utc=True, errors='coerce')
+        if pd.isna(start) or pd.isna(end) or end < start:
+            return '—'
+        hours = (end - start).total_seconds() / 3600
+        label = f'{hours:.1f} ore' if hours < 24 else f'{hours / 24:.1f} giorni'
+        fires = '🔥🔥🔥🔥' if hours <= 6 else '🔥🔥🔥' if hours <= 12 else '🔥🔥' if hours <= 24 else '🔥' if hours <= 48 else '🐢'
+        return f'{fires} {label}'
+
+    rows = []
+    for _, item in data.iterrows():
+        link = safe_link(item['url'])
+        title = escape(str(item['title'] if pd.notna(item['title']) else 'Senza titolo'))
+        title_cell = f'<a href="{link}" target="_blank" rel="noopener noreferrer">{title}</a>' if link else title
+        image_url = str(item['image']) if pd.notna(item['image']) else ''
+        image_ok = urlparse(image_url).scheme == 'https'
+        image_cell = f'<img src="{escape(image_url, quote=True)}" alt="Foto annuncio" loading="lazy">' if image_ok else '—'
+        date_str = escape(str(item['ended_at'] or '—'))[:10]
+        price_str = eur(item['sold_price'])
+        shipping_str = eur(item['shipping_price']) if pd.notna(item['shipping_price']) else '—'
+        condition_str = escape(str(item['condition'])) if pd.notna(item['condition']) else '—'
+        rows.append(f'<tr><td>{image_cell}</td><td>{title_cell}</td><td class="price">{price_str}</td><td>{date_str}</td><td>{sold_speed(item)}</td><td>{shipping_str}</td><td>{condition_str}</td></tr>')
+    html_table = ('<div class="mt-scroll"><table class="mt-sale-table"><thead><tr>'
+                  '<th>Foto</th><th>Annuncio (clicca per aprire)</th><th>Prezzo</th><th>Venduto il</th><th>🔥 Venduto in</th><th>Spedizione</th><th>Condizione</th>'
+                  '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>')
+    st.markdown(html_table, unsafe_allow_html=True)
+    st.caption('🔥 Venduto in: calcolato solo quando è disponibile anche la data di pubblicazione. Al momento SoldComps ci restituisce la data di vendita, non la durata dell’inserzione.')
     st.caption(f'Pagina {current} di {pages} · {count:,} risultati · caricati solo {len(data)} annunci'.replace(',','.'))
     st.download_button('⬇️ Esporta questa pagina (CSV)', data=data.to_csv(index=False).encode('utf-8-sig'), file_name='venduti_ebay_pagina.csv', mime='text/csv')
 
