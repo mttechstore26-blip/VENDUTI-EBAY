@@ -22,7 +22,7 @@ hour = datetime.now().hour
 slots = {
     0: ("141755", "Album sportivi", "70"),
     12: ("63", "Fumetti e memorabilia", "100"),
-    18: ("220", "Giocattoli e modellismo", "70"),
+    18: ("220", "Giocattoli e modellismo", "100"),
 }
 if hour not in slots or (hour == 18 and datetime.now().day % 2 != 0):
     print(f"Ore {hour:02d}:00: nessuna raccolta programmata (quota gratuita conservata).")
