@@ -1,12 +1,13 @@
-"""Run the eBay collector only if at least 11 free subscription requests remain.
+"""Quota-safe SoldComps scheduler for two category-wide monitors.
 
-No API key or database is written to GitHub. Fail closed on usage errors.
+The existing six-hour systemd timer remains enabled; two slots per day
+make an API call, keeping the free plan viable until its monthly reset.
 """
 import os
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
-
 import requests
 from dotenv import load_dotenv
 
@@ -15,6 +16,18 @@ load_dotenv(ROOT / ".env")
 key = os.getenv("SOLDCOMPS_API_KEY", "").strip()
 if not key or key == "sc_INSERISCI_QUI":
     sys.exit("ERRORE: chiave SoldComps non configurata")
+
+# Server timezone determines calendar slots; 06:00 and 18:00 do not query.
+hour = datetime.now().hour
+slots = {
+    0: ("141755", "Album sportivi", "70"),
+    12: ("63", "Fumetti e memorabilia", "100"),
+}
+if hour not in slots:
+    print(f"Ore {hour:02d}:00: nessuna raccolta programmata (quota gratuita conservata).")
+    sys.exit(0)
+
+category_id, category_name, min_price = slots[hour]
 
 try:
     response = requests.get(
@@ -33,8 +46,21 @@ if remaining <= reserve:
     print(f"Raccolta sospesa: {remaining} richieste residue, riserva di {reserve}.")
     sys.exit(0)
 
-print(f"Saldo SoldComps: {remaining} richieste; riserva: {reserve}. Avvio raccolta di una pagina.", flush=True)
+print(
+    f"Saldo {remaining}; categoria {category_name} ({category_id}); minimo {min_price} EUR; una pagina.",
+    flush=True,
+)
 env = os.environ.copy()
-env["MAX_PAGES_PER_RUN"] = "1"
-result = subprocess.run([sys.executable, str(ROOT / "collector.py")], cwd=ROOT, env=env, check=False)
+env.update({
+    "EBAY_CATEGORY_ID": category_id,
+    "EBAY_CATEGORY_NAME": category_name,
+    "MIN_PRICE": min_price,
+    "MAX_PAGES_PER_RUN": "1",
+})
+result = subprocess.run(
+    [sys.executable, str(ROOT / "collector.py")],
+    cwd=ROOT,
+    env=env,
+    check=False,
+)
 sys.exit(result.returncode)
