@@ -84,7 +84,7 @@ def run():
     site = os.getenv('EBAY_SITE', 'ebay.it')
     category_id = os.getenv('EBAY_CATEGORY_ID', '141755')
     category_name = os.getenv('EBAY_CATEGORY_NAME', 'Album di figurine' if category_id=='141755' else 'Categoria '+category_id)
-    conn.execute('INSERT OR IGNORE INTO categories(category_id,name) VALUES (?,?)', (category_id,category_name))
+    conn.execute('INSERT INTO categories(category_id,name) VALUES (?,?) ON CONFLICT(category_id) DO UPDATE SET name=excluded.name', (category_id,category_name))
     conn.commit()
     items_seen = inserted = 0
     status, message = 'ok', ''
@@ -96,7 +96,7 @@ def run():
             items_seen += len(items)
             for item in items:
                 price = number(item.get('soldPrice'))
-                if price is None or price < 70:
+                if price is None or price < float(os.getenv('MIN_PRICE', '70')):
                     continue
                 item_id = str(item.get('itemId') or '')
                 if not item_id:
