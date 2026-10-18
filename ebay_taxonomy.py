@@ -144,7 +144,65 @@ def classify(category_id, title):
             ("Altri manga",r"\bmanga\b|higurashi|ichi the killer|fragrant flower"),
             ("Manga",r"\bmanga\b|one piece|dragon ball|naruto"),
         ]
-        family = next((b for b,p in series if re.search(p,t)), "Altri fumetti")
+        more_series = [
+            ("LOW", r"\blow\b.*(?:remender|tocchini|image comics)"),
+            ("Infinity Gauntlet / Guanto dell’Infinito", r"guanto dell.infinito|infinity gauntlet|\bthanos\b"),
+            ("Marvel Premiere", r"marvel premiere"),
+            ("Teen Titans", r"teen titans|tales of the teen titans|\bcyborg\b.*titans"),
+            ("Darkstalkers", r"darkstalkers|morrigan.*udon"),
+            ("The Metabarons", r"metabarons|metabaroni"),
+            ("MAD Magazine", r"\bmad archives\b|\bmad magazine\b"),
+            ("Hot Rods and Racing Cars", r"hot rods|auto da corsa.*fumetto"),
+            ("Rachel Rising", r"rachel rising"),
+            ("Ghost-Spider / Spider-Gwen", r"ghost.spider|spider.gwen"),
+            ("Don Rosa / Zio Paperone", r"don rosa|zio paperone"),
+            ("Ultra Gash Inferno", r"ultra gash|suehiro maruo"),
+            ("Sehelenex / Thrilling", r"sehelenex|thrilling super fumetti"),
+            ("Hawkman", r"\bhawkman\b"),
+            ("Lupo mannaro di notte", r"lupo mannaro di notte|werewolf by night"),
+            ("Hitman / Agente 47", r"agente 47|nascita del sicario"),
+            ("Gaston Lagaffe", r"\bgaston\b"),
+            ("Frankenstein", r"frankenstein"),
+            ("Amazing Adult Fantasy", r"amazing adult fantasy"),
+            ("Spider-Ham", r"spider.ham"),
+            ("Strange Tales", r"strange tales"),
+            ("Dracula", r"\bdracula\b"),
+            ("Justice League", r"justice league|jla\b"),
+            ("Lady Death", r"lady death"),
+            ("Robin / Tim Drake", r"tim drake|\brobin\b"),
+            ("Tarzan", r"\btarzan\b"),
+            ("Nick Fury", r"nick fury|s\.?h\.?i\.?e\.?l\.?d"),
+            ("Scooby Apocalypse", r"scooby apocalypse"),
+            ("Czarface", r"czarface"),
+            ("Marvel Zero", r"marvel zero"),
+            ("Über", r"\buber\b.*(?:gillen|avatar|fumett)"),
+            ("Crossed", r"\bcrossed\b"),
+            ("Captain Marvel", r"captain marvel"),
+            ("World’s Finest", r"world.s finest"),
+            ("The Eternals", r"\beternals\b"),
+            ("Super Mario Bros", r"super mario bros"),
+            ("Chevalier Ardent", r"chevalier ardent"),
+            ("Blueberry", r"\bblueberry\b.*(?:navajos|t\.?\s*5)"),
+            ("Stillwater", r"\bstillwater\b"),
+            ("Il Mercenario", r"il mercenario|\bsegrelles\b"),
+            ("Ice Cream Man", r"ice cream man"),
+            ("Doctor Peculiar", r"doctor peculiar"),
+            ("Something Is Killing the Children", r"\bsiktc\b|something is killing the children"),
+            ("Weird Western Tales", r"weird western tales"),
+            ("Haunted / Charlton", r"\bhaunted\b.*(?:charlton|sutton)"),
+        ]
+        family = next((name for name, pattern in more_series if re.search(pattern, t)), None)
+        if family is None:
+            family = next((name for name, pattern in series if re.search(pattern, t)), None)
+        if family is None:
+            other_types = [
+                ("Statue / busti / action figure", r"statua|statue|\bbusto\b|action figure|\bfigure\b"),
+                ("Tavole / cel / disegni originali", r"\bcellulo\b|\bcel\b|d[eé]cor original|\bdessin\b|arte originale|copertina.*dipinta"),
+                ("Lotti misti / varianti", r"scatola.*fumetti|\blotto\b.*(?:fumetti|variant)|copertin[ae] variant"),
+                ("Libri e materiale non fumettistico", r"problemi di fisica|\birodov\b|t.shirt|maglietta|supporto acrilico"),
+            ]
+            family = next((name for name, pattern in other_types if re.search(pattern, t)), "Altri fumetti")
+
         publishers = [
             ("Sergio Bonelli",r"bonelli|dylan dog|zagor|martin myst|\btex\b"),
             ("Panini",r"\bpanini\b"),
