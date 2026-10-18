@@ -184,15 +184,32 @@ if section == '🏷️ Categorie':
             c4.metric('🔥 Tempo mediano','N/D')
             st.caption('Per eBay il tempo di vendita non è disponibile senza la data iniziale dell’inserzione.')
             detail=selected_data.sort_values('ended_at',ascending=False).copy()
-            detail=detail.rename(columns={'title':'Annuncio','sold_price':'Prezzo €','ended_at':'Venduto il','url':'Apri su eBay'})
-            st.subheader('📋 Annunci delle famiglie selezionate')
-            st.dataframe(detail[['Annuncio','Prezzo €','Venduto il','Apri su eBay']].head(100),
-                hide_index=True,width='stretch',column_config={
-                'Apri su eBay':st.column_config.LinkColumn('Inserzione',display_text='Apri ↗'),
-                'Prezzo €':st.column_config.NumberColumn('Prezzo €',format='%.2f €')})
-            st.download_button('⬇️ Esporta tutti gli annunci della selezione (CSV)',
+            st.download_button('📥 Esporta tutti gli annunci della famiglia (CSV)',
                 data=detail.to_csv(index=False).encode('utf-8-sig'),
                 file_name='venduti_ebay_famiglie.csv',mime='text/csv')
+            st.subheader('📋 Annunci delle famiglie selezionate')
+            html_rows=[]
+            for item in detail.head(100).itertuples(index=False):
+                title=escape(str(item.title or 'Senza titolo'))
+                url=str(item.url or '')
+                p=urlparse(url)
+                valid=p.scheme=='https' and bool(p.hostname) and (p.hostname=='ebay.it' or p.hostname.endswith('.ebay.it') or p.hostname=='ebay.com' or p.hostname.endswith('.ebay.com'))
+                title_html=f'<a href="{escape(url,quote=True)}" target="_blank" rel="noopener noreferrer">{title}</a>' if valid else title
+                date=pd.to_datetime(item.ended_at,errors='coerce',utc=True)
+                date_text=date.strftime('%d/%m/%Y') if pd.notna(date) else '—'
+                html_rows.append(f'<tr><td>{title_html}</td><td class="price">{eur(item.sold_price)}</td><td>—</td><td>{date_text}</td></tr>')
+            st.markdown('<div class="mt-scroll"><table class="mt-sale-table"><thead><tr><th>Titolo</th><th>Prezzo</th><th>Venduto in</th><th>Rilevato venduto</th></tr></thead><tbody>'+''.join(html_rows)+'</tbody></table></div>',unsafe_allow_html=True)
+            st.caption('Venduto in: N/D perché SoldComps non fornisce la data di pubblicazione. Rilevato venduto indica la data di chiusura eBay, non l’ora del rilevamento.')
+            st.subheader('📈 Andamento prezzo')
+            timeline=detail.copy()
+            timeline['giorno']=pd.to_datetime(timeline['ended_at'],errors='coerce',utc=True).dt.date
+            timeline=timeline.dropna(subset=['giorno','sold_price'])
+            if not timeline.empty and timeline['giorno'].nunique()>1:
+                daily=timeline.groupby('giorno',as_index=False)['sold_price'].median().rename(columns={'sold_price':'Prezzo mediano €'})
+                st.line_chart(daily,x='giorno',y='Prezzo mediano €',width='stretch')
+                st.caption('Mediana giornaliera dei prezzi degli annunci archiviati nella selezione.')
+            else:
+                st.info('Servono vendite in almeno due giorni diversi per mostrare un andamento dei prezzi.')
         st.caption('Trend e velocità non sono stimati da dati insufficienti; una volta raccolta una serie storica adeguata potremo calcolarli.')
 else:
     st.subheader('📦 Annunci venduti')
