@@ -39,7 +39,39 @@ def classify(category_id, title):
             ("WWE / Wrestling", r"\bwwe\b|smackdown"),
             ("X-Files", r"x[ -]?files?"),
         ]
-        family = next((b for b,p in specific if re.search(p,t)), None)
+        # Mondiali: separa le edizioni senza confondere il numero di una figurina con l'annata.
+        editions = [
+            (1970, "Messico", r"mexic[oa]|messico|m[eé]xico"),
+            (1974, "Germania Ovest", r"west germany|germania|deutschland|m[üu]nchen|munich"),
+            (1978, "Argentina", r"argentina"),
+            (1982, "Spagna", r"spagna|espa[ñn]a|spain"),
+            (1986, "Messico", r"mexic[oa]|messico|m[eé]xico"),
+            (1990, "Italia", r"italia|italy"),
+            (1994, "USA", r"usa|united states"),
+            (1998, "Francia", r"france|francia"),
+            (2002, "Corea/Giappone", r"korea|japan|corea|giappone"),
+            (2006, "Germania", r"germany|germania|deutschland"),
+            (2010, "Sudafrica", r"south africa|sudafrica"),
+            (2014, "Brasile", r"brazil|brasil[ei]?"),
+            (2018, "Russia", r"russia"),
+            (2022, "Qatar", r"qatar|quatar"),
+            (2026, "USA/Canada/Messico", r"world cup|mondial|fifa|mexico|messico"),
+        ]
+        cup_context = bool(re.search(r"world\\s*cup|coppa del mondo|mondial\\w*|mundial\\w*|\\bwc\\b|\\bwm\\b|\\bfifa\\b|calciatori", t))
+        world_family = None
+        for year_n, host, host_pattern in editions:
+            short = str(year_n)[-2:]
+            has_host = bool(re.search(r"\\b(?:" + host_pattern + r")\\b", t))
+            year_match = bool(re.search(r"(?<!\\d)" + str(year_n) + r"(?!\\d)", t))
+            shorthand = bool(re.search(r"(?<!\\d)" + short + r"(?!\\d)", t))
+            # Two-digit shorthand only counts alongside host and/or World Cup wording.
+            if (has_host and (year_match or shorthand)) or (year_match and cup_context):
+                world_family = f"Mondiali {year_n} — {host}"
+                break
+        if world_family is not None:
+            family = world_family
+        else:
+            family = next((b for b,p in specific if re.search(p,t)), None)
         if family is None:
             family = next((b for b,p in families if re.search(p,t)), None)
         # Se non riconosciamo la serie, distinguiamo il formato dell'articolo.
