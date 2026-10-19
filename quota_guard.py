@@ -1,6 +1,6 @@
 """Quota-safe category-wide SoldComps scheduler.
 
-Ten monitored categories every six hours (00,06,12,18).
+Eleven monitored categories every six hours (00,06,12,18).
 Respect monthly reserve and refuse extra-credit API charges.
 """
 import os
@@ -53,6 +53,7 @@ categories = [
     ("38250", "Macchine da caffè", "100"),
     ("139971", "CONSOLE 400+", "400"),
     ("111422", "PORTATILI APPLE 300+", "300"),
+    ("175672", "PORTATILI 150-300", "150"),
 ]
 slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
@@ -90,10 +91,12 @@ for category_id, category_name, min_price in jobs:
     env.pop("EBAY_CONDITION_ID", None)
     env.pop("MAX_PRICE", None)
     env.pop("EBAY_ITEM_LOCATION", None)
-    if category_id in ("20667", "38250", "139971", "111422"):
+    if category_id in ("20667", "38250", "139971", "111422", "175672"):
         env["EBAY_CONDITION_ID"] = "3000"
-    if category_id == "111422":
+    if category_id in ("111422", "175672"):
         env["EBAY_ITEM_LOCATION"] = "domestic"
+    if category_id == "175672":
+        env["MAX_PRICE"] = "300"
     if category_id == "38250":
         env["MAX_PRICE"] = "300"
     result = subprocess.run([sys.executable, str(ROOT / "collector.py")],
