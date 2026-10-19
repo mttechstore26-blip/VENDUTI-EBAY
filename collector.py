@@ -73,6 +73,8 @@ def fetch_page(page):
             'page': page, 'count': int(os.getenv('COUNT_PER_PAGE', '240')),
             'sortOrder': 'endedRecently',
             'minPrice': float(os.getenv('MIN_PRICE', '70'))}
+    if os.getenv('EBAY_ITEM_LOCATION', '').strip():
+        args['itemLocation'] = os.getenv('EBAY_ITEM_LOCATION').strip()
     if os.getenv('MAX_PRICE', '').strip():
         args['maxPrice'] = float(os.getenv('MAX_PRICE'))
     if os.getenv('EBAY_CONDITION_ID', '').strip():
