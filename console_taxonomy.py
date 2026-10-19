@@ -6,6 +6,26 @@ color/storage alone. A sale is never dropped merely because it cannot be recogni
 import re
 
 MODELS = [
+ ("Sony","PlayStation 5 Pro",r"\bps5\s*pro\b|\bplaystation\s*5\s*pro\b|\bcfi[- ]?70\d\d\b"),
+ ("Sony","PlayStation 5 Slim Digital",r"(?:ps5|playstation\s*5).*slim.*digital|(?:ps5|playstation\s*5).*digital.*slim"),
+ ("Sony","PlayStation 5 Slim",r"(?:ps5|playstation\s*5).*slim|\bcfi[- ]?20\d\d\b"),
+ ("Sony","PlayStation 5 Digital",r"(?:ps5|playstation\s*5).*digital|\bcfi[- ]?21\d\d\b"),
+ ("Sony","PlayStation 5 Standard",r"\bps5\b|\bplaystation\s*5\b"),
+ ("Sony","PlayStation 4 Pro",r"\bps4\s*pro\b|\bplaystation\s*4\s*pro\b"),
+ ("Sony","PlayStation 4 Slim",r"\bps4\s*slim\b|\bplaystation\s*4\s*slim\b"),
+ ("Sony","PlayStation 4",r"\bps4\b|\bplaystation\s*4\b"),
+ ("Microsoft","Xbox Series X",r"\bxbox\s*(?:series\s*)?x\b|\bmicrosoft\s*series\s*x\b"),
+ ("Microsoft","Xbox Series S",r"\bxbox\s*(?:series\s*)?s\b"),
+ ("Microsoft","Xbox One X",r"\bxbox\s*one\s*x\b"),
+ ("Nintendo","Switch 2",r"\bswitch\s*2\b"),
+ ("Nintendo","Switch OLED",r"\bswitch\s*oled\b|\boled\s*switch\b"),
+ ("Nintendo","Switch Lite",r"\bswitch\s*lite\b"),
+ ("Nintendo","Switch",r"\bnintendo\s*switch\b"),
+ ("Valve","Steam Deck OLED",r"\bsteam\s*deck\b.*\boled\b"),
+ ("Valve","Steam Deck LCD",r"\bsteam\s*deck\b"),
+ ("Lenovo","Legion Go",r"\blegion\s*go\b"),
+ ("Sony","PlayStation Portal",r"\bplaystation\s*portal\b|\bps\s*portal\b"),
+
  ("ASUS","ROG Xbox Ally X",r"\brog\s*xbox\s*ally\s*x\b"),
  ("ASUS","ROG Xbox Ally",r"\brog\s*xbox\s*ally\b"),
  ("ASUS","ROG Ally X",r"\brog\s*ally\s*x\b"),
