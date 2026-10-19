@@ -225,22 +225,22 @@ if section == '🏷️ Categorie':
                 brand = str(row['Brand / Editore'] or 'Non identificato')
                 model = str(row['Modello / Edizione'] or '').strip()
                 # Codici TM con e senza spazi: stesso modello commerciale.
-                tm = re.search(r'\\b(?:bimby|thermomix|vorwerk).*?\\btm\\s*[- ]?\\s*(31|5|6|7)\\b|\\btm\\s*[- ]?\\s*(31|5|6|7)\\b',lower)
+                tm = re.search(r'\b(?:bimby|thermomix|vorwerk).*?\btm\s*[- ]?\s*(31|5|6|7)\b|\btm\s*[- ]?\s*(31|5|6|7)\b',lower)
                 if tm:
                     return 'Vorwerk Bimby TM' + (tm.group(1) or tm.group(2))
                 if brand == 'KitchenAid':
-                    if re.search(r'\\bartisan\\b|\\b5ksm(?:125|150|175|185|195)\\w*\\b|\\bksm150\\w*\\b',lower):
+                    if re.search(r'\bartisan\b|\b5ksm(?:125|150|175|185|195)\w*\b|\bksm150\w*\b',lower):
                         return 'KitchenAid Artisan Series 5'
-                    if re.search(r'\\bprofessional\\s*5\\s*plus\\b',lower):
+                    if re.search(r'\bprofessional\s*5\s*plus\b',lower):
                         return 'KitchenAid Professional 5 Plus'
-                    if re.search(r'\\bk45ss\\b',lower):
+                    if re.search(r'\bk45ss\b',lower):
                         return 'KitchenAid Classic K45SS'
                 if brand == 'Vitamix':
-                    if re.search(r'\\b5200\\b|\\bvm0103\\b',lower):
+                    if re.search(r'\b5200\b|\bvm0103\b',lower):
                         return 'Vitamix 5200 / VM0103'
-                if brand in ('Breville','Sage') and re.search(r'\\bbes870\\w*\\b|barista express',lower):
+                if brand in ('Breville','Sage') and re.search(r'\bbes870\w*\b|barista express',lower):
                     return 'Breville / Sage Barista Express'
-                if brand == 'Champion' and re.search(r'g5[-\\s]?ng[-\\s]?853s',lower):
+                if brand == 'Champion' and re.search(r'g5[-\s]?ng[-\s]?853s',lower):
                     return 'Champion G5-NG-853S'
                 # Scarta etichette descrittive, colori e parole che non sono modelli.
                 invalid = {'', 'modello non identificato', 'rosso', 'rossa', 'robot', 'attacchi',
