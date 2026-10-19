@@ -28,12 +28,26 @@ def classify_apple_laptop(title):
     memory=(next((g for g in ram.groups() if g),None)+'GB RAM') if ram else ""
     disk = re.search(r'\b(128|256|512)\s*gb\s*(?:ssd|storage|archiviazione)\b|\b([1248])\s*tb\s*(?:ssd|storage)\b',t)
     storage=(disk.group(1)+'GB SSD' if disk.group(1) else disk.group(2)+'TB SSD') if disk else ""
-    bits=[chip]
-    if inches: bits.append(inches)
-    if yr: bits.append(yr)
-    model=" · ".join(bits)
-    # Keep model grouping usable: storage/RAM are exported separately in title,
-    # not fused into model identifiers (would create many one-item groups).
+    # Canonical commercial groups: do not split on optional year or size.
+    # Keep ambiguous family/chip identities distinct rather than guessing.
+    if family == "MacBook Air":
+        model = "MacBook Air " + chip
+        if inches == '15"' and chip in ("M2", "M3", "M4", "M5"):
+            model += ' 15"'
+    elif family == "MacBook Pro":
+        model = "MacBook Pro " + chip
+        if inches in ('14"', '16"'):
+            model += " " + inches
+        elif chip in ("M1", "M2") and inches == '13"':
+            model += ' 13"'
+    elif family == "MacBook Neo":
+        model = "MacBook Neo"
+    elif family == "MacBook Retina 12":
+        model = "MacBook Retina 12"
+    elif family == "MacBook (generico)":
+        model = "MacBook non specificato · " + chip
+    else:
+        model = "Apple laptop da verificare · " + chip
     danger=r'\b(?:icloud\s*(?:lock|blocc)|activation\s*lock|blocco\s*attivazione|mdm|remote\s*management|gestione\s*remota|per\s*ricambi|for\s*parts|non\s*funzionante|non\s*si\s*accende|schermo\s*rotto|display\s*rotto|senza\s*audio|broken|faulty|guasto|scheda\s*madre|logic\s*board|solo\s*scatola|box\s*only)\b'
     if re.search(danger,t): status="⚠️ Blocco / guasto / ricambio: verificare"
     elif re.search(r'\b(?:da\s*testare|leggere\s*descrizione|difetto|problema|battery\s*service|batteria\s*da\s*sostituire)\b',t): status="⚠️ Condizioni da verificare"
