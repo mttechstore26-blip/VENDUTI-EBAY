@@ -325,8 +325,8 @@ if section == '🏷️ Categorie':
             key='ebay_family_table',
             column_config={display_group:st.column_config.TextColumn(display_group,width='large'),
                            'Venduti':st.column_config.NumberColumn('Venduti'),
-                           'Prezzo medio €':st.column_config.NumberColumn('Prezzo medio €',format='%.2f €'),
-                           'Prezzo mediano €':st.column_config.NumberColumn('Prezzo mediano €',format='%.2f €')})
+                           'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
+                           'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg')})
         selected_indices=state.selection.rows
         chosen=family_stats.iloc[selected_indices][display_group].tolist() if selected_indices else []
         selected_data=subset[subset[group_level].isin(chosen)] if chosen else subset.iloc[0:0]
