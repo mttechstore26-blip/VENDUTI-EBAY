@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from ebay_taxonomy import classify
 from kitchen_taxonomy import classify_kitchen
 from coffee_taxonomy import classify_coffee
+from console_taxonomy import classify_console
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
 ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971')
@@ -160,6 +161,8 @@ if section == '🏷️ Categorie':
                 parsed.append(classify_kitchen(r.title))
             elif str(r.category_id) == '38250':
                 parsed.append(classify_coffee(r.title))
+            elif str(r.category_id) == '139971':
+                parsed.append(classify_console(r.title))
             else:
                 parsed.append((*classify(r.category_id, r.title), 'Non applicabile'))
         raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione','Stato prodotto']] = pd.DataFrame(parsed,index=raw.index)
@@ -254,7 +257,7 @@ if section == '🏷️ Categorie':
                     return 'Modello ' + model
                 return brand + ' ' + model
             subset = subset.copy()
-            subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id == '38250' else subset.apply(modello_commerciale, axis=1))
+            subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971') else subset.apply(modello_commerciale, axis=1))
             group_level = 'Modello commerciale'
             st.caption('Modelli commerciali riconosciuti e unificati (es. TM 5 = TM5). Quelli incerti restano separati; non vengono unificate le vendite.')
         else:
@@ -282,7 +285,7 @@ if section == '🏷️ Categorie':
         chosen=family_stats.iloc[selected_indices][display_group].tolist() if selected_indices else []
         selected_data=subset[subset[group_level].isin(chosen)] if chosen else subset.iloc[0:0]
         if not chosen:
-            st.info('👆 Seleziona uno o più modelli per vedere statistiche e annunci.' if export_id == '20667' else '👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
+            st.info('👆 Seleziona uno o più modelli per vedere statistiche e annunci.' if export_id in ('20667','38250','139971') else '👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
         else:
             st.caption('📌 Selezionate: ' + ', '.join(chosen))
             c1,c2,c3,c4=st.columns(4)
@@ -295,7 +298,7 @@ if section == '🏷️ Categorie':
             st.download_button('📥 Esporta tutti gli annunci della famiglia (CSV)',
                 data=detail.to_csv(index=False).encode('utf-8-sig'),
                 file_name='venduti_ebay_famiglie.csv',mime='text/csv')
-            st.subheader('📋 Annunci dei modelli selezionati' if export_id == '20667' else '📋 Annunci delle famiglie selezionate')
+            st.subheader('📋 Annunci dei modelli selezionati' if export_id in ('20667','38250','139971') else '📋 Annunci delle famiglie selezionate')
             html_rows=[]
             for item in detail.head(100).itertuples(index=False):
                 title=escape(str(item.title or 'Senza titolo'))
