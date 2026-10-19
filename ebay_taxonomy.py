@@ -376,4 +376,93 @@ def classify(category_id, title):
         issue = re.search(r"\b(?:n(?:umero|um)?\.?|#)\s*(\d{1,4})\b", t)
         model = "N. " + issue.group(1) if issue else "Numero non identificato"
         return brand, family, model
+
+    if str(category_id) == "20667":
+        # Titoli eBay anche tradotti: brand, tipologia e codice modello quando esplicito.
+        brands = [
+            ("KitchenAid", r"kitchen\s?aid"), ("Vitamix", r"vita[ -]?mix"),
+            ("Breville", r"\bbreville\b"), ("Sage", r"\bsage\b"),
+            ("Ninja", r"\bninja\b"), ("Vorwerk", r"vorwerk|\bbimby\b|thermomix"),
+            ("SMEG", r"\bsmeg\b"), ("Zojirushi", r"zojirushi"),
+            ("Philips", r"\bphilips\b"), ("De'Longhi", r"de.?longhi|delonghi"),
+            ("Gaggia", r"\bgaggia\b"), ("Champion", r"\bchampion\b"),
+            ("Blendtec", r"blendtec|k.tec"), ("Kenwood", r"\bkenwood\b"),
+            ("Bosch", r"\bbosch\b"), ("Cuisinart", r"cuisinart"),
+            ("Technivorm", r"technivorm|moccamaster"), ("Saladmaster", r"saladmaster"),
+            ("Panasonic", r"panasonic"), ("Braun", r"\bbraun\b"),
+            ("Jura", r"\bjura\b"), ("Keurig", r"\bkeurig\b"),
+            ("Nespresso", r"nespresso"), ("Aarke", r"\baarke\b"),
+            ("Tribest", r"tribest|greenstar"), ("Flair", r"\bflair\b"),
+            ("La Pavoni", r"la pavoni"), ("Eureka", r"\beureka\b"),
+            ("Baratza", r"baratza"), ("1Zpresso", r"1zpresso"),
+            ("Fellow", r"\bfellow\b"), ("Magic Mill", r"magic mill"),
+            ("Waring", r"waring"), ("White Mountain", r"white mountain"),
+            ("Mr. Coffee", r"mr\.? coffee"), ("Silvercrest", r"silvercrest|monsieur cuisine"),
+            ("Cuckoo", r"cuckoo"), ("Kuvings", r"kuvings"),
+            ("Nama", r"\bnama\b"), ("Joyoung", r"joyoung"),
+            ("Mockmill", r"mockmill"), ("Schnitzer", r"schnitzer"),
+            ("NutriMill", r"nutrimill"), ("Oster", r"\boster\b"),
+            ("GE", r"\bge\b.*(?:opal|profile|brew)"),
+            ("VacMaster", r"vacmaster"), ("Multivac", r"multivac"),
+            ("Typhur", r"typhur"), ("AquaTru", r"aquatru"),
+            ("Bluevua", r"bluevua"), ("Enagic", r"enagic|kangen"),
+            ("LEVO", r"\blevo\b"), ("LEМ", r"\blem products\b"),
+            ("Black & Decker", r"black\s*(?:&|and)\s*decker"),
+            ("Ronic", r"\bronic\b"), ("National", r"\bnational\b"),
+            ("Bodum", r"\bbodum\b"), ("Sharp", r"\bsharp\b"),
+            ("Whirlpool", r"whirlpool"), ("Samsung", r"samsung"),
+            ("LG", r"\blg\b"), ("Siemens", r"siemens"),
+            ("Kruve", r"kruve"), ("Chemex", r"chemex"),
+        ]
+        brand = next((name for name, pat in brands if re.search(pat, t)), "Non identificato")
+        accessory = re.search(r"\b(?:scheda|pannello|display board|control board|inverter|ricambio|replacement|solo motore|base solo|motor base only|only base|porta completa|barattolo|caraffa di ricambio|coperchio|only bowl|senza ciotola|senza coperchio|solo sezione motore|attacco miscelatore|inserti filtro|setaccio)\b", t)
+        if accessory:
+            family = "Accessori / ricambi / componenti"
+        else:
+            families = [
+                ("Robot da cucina / Bimby", r"bimby|thermomix|monsieur cuisine|robot da cucina|food processor|robot cook"),
+                ("Impastatrici / planetarie", r"mixer da appoggio|stand mixer|miscelatore|impastatrice|kitchenaid.*(?:artisan|classic|ultra power|ksm|k45|k5ss|quart)|chef elite|\bkmix\b"),
+                ("Macchine espresso", r"espresso|barista|bambino|gaggia|jura|lattissima|dedica duo|francis francis|microcimbali"),
+                ("Macchine caffè / filtro / capsule", r"caffettiera|macchina da caff|macchina caff|nespresso|keurig|senseo|moccamaster|grind.*brew|truebrew|pour over"),
+                ("Macinacaffè / macinacereali", r"macinacaff|smerigliatrice|macina farina|macina grani|mulino|grain mill|mockmill"),
+                ("Frullatori / blender", r"frullator|blender|vitamix|blendtec|turboblend"),
+                ("Estrattori / centrifughe / spremiagrumi", r"spremiagrum|juicer|estrattore|centrifug|pressa a freddo|greenstar"),
+                ("Cuociriso", r"cuociriso|scaldariso|rice cooker|neuro fuzzy|micom|induzione.*riso"),
+                ("Friggitrici ad aria / forni", r"friggitrice ad aria|air fryer|smart oven|forno|\bdz550\b"),
+                ("Gelatiere / bevande ghiacciate", r"gelatiera|creami|slushi|slushie|congelatore gelato|soft serve"),
+                ("Bollitori / tè", r"bollitore|macchina per t[eè]|tea maker"),
+                ("Sottovuoto / confezionatrici", r"sottovuoto|vacuum sealer|sigillante"),
+                ("Macchine per pane / pasta", r"macchina del pane|macchina per il pane|home bakery|pasta maker|noodle maker|macchina per pasta"),
+                ("Tostapane / waffle / popcorn", r"tostapane|waffle|cialda.*belga|popcorn|popper"),
+                ("Griglie / piastre / padelle", r"griglia|grill|plancha|padella elettrica|pentola elettrica"),
+                ("Filtrazione / gasatura acqua", r"filtrazione acqua|osmosi|ionizzatore|distillatore acqua|carbonator|purificazione"),
+                ("Microonde", r"microonde"),
+                ("Altri elettrodomestici cucina", r"."),
+            ]
+            family = next((name for name, pat in families if re.search(pat, t)), "Altri elettrodomestici cucina")
+        # Evita di scambiare voltaggio/capacità con il codice modello.
+        known = [
+            r"g5[- ]ng[- ]853s", r"\btm\s?(?:31|5|6|7)\b",
+            r"\b(?:bes|ksm|k45ss|k5ss|vm|nc|dz|tb|ep|np|ns|nw|crp|bta|bdc|klf|dcf|tsf|kmx|mum|gse|skms|fs|fg|hb|cf|ft|sl|kvc|sov|ice|tpu|hd|hr|cam|ec|bco|dgb|ksc|btm|at|ro|sv|kbgv)[- ]?[a-z0-9]{3,15}\b",
+        ]
+        model = "Modello non identificato"
+        for pat in known:
+            m = re.search(pat, t, re.I)
+            if m:
+                model = m.group(0).upper()
+                break
+        if model == "Modello non identificato":
+            for name, pat in [
+                ("5200", r"\b5200\b"), ("7500", r"\b7500\b"),
+                ("A2300", r"\ba2300\b"), ("A2500", r"\ba2500\b"),
+                ("Barista Express", r"barista express"),
+                ("Barista Touch", r"barista touch"),
+                ("Bambino Plus", r"bambino plus"), ("Bambino", r"\bbambino\b"),
+                ("Artisan", r"artisan"), ("CREAMi", r"creami"),
+                ("Neuro Fuzzy", r"neuro fuzzy"), ("KBGV Select", r"kbgv select"),
+            ]:
+                if re.search(pat, t):
+                    model = name
+                    break
+        return brand, family, model
     return "Non identificato", "Altri prodotti", "Modello non identificato"
