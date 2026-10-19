@@ -213,7 +213,7 @@ if section == '🏷️ Categorie':
             key=f"download_category_{export_id}",
             help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
         )
-        if export_id in ('20667','38250','139971','111422'):
+        if export_id in ('20667','38250','139971'):
             state_choice = st.selectbox(
                 'Tipo prodotto', ['Tutti'] + sorted(subset['Stato prodotto'].dropna().unique().tolist()),
                 help='Classificazione indicativa ricavata dal titolo; non sostituisce una verifica dell’annuncio.')
@@ -222,7 +222,7 @@ if section == '🏷️ Categorie':
             st.caption('Stato prodotto stimato dal titolo; il CSV completo contiene comunque tutti gli annunci e la relativa classificazione.')
         st.subheader('🧩 Brand / famiglie / modelli')
         st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
-        if export_id in ('20667','38250','139971','111422'):
+        if export_id in ('20667','38250','139971'):
             def modello_commerciale(row):
                 import re
                 title = str(row['title'] or '')
@@ -258,7 +258,7 @@ if section == '🏷️ Categorie':
                     return 'Modello ' + model
                 return brand + ' ' + model
             subset = subset.copy()
-            subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971','111422') else subset.apply(modello_commerciale, axis=1))
+            subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971') else subset.apply(modello_commerciale, axis=1))
             group_level = 'Modello commerciale'
             st.caption('Modelli commerciali riconosciuti e unificati (es. TM 5 = TM5). Quelli incerti restano separati; non vengono unificate le vendite.')
         else:
@@ -266,12 +266,12 @@ if section == '🏷️ Categorie':
         family_stats=(subset.groupby(group_level,dropna=False)
                  .agg(Venduti=('item_id','size'), Prezzo_medio=('sold_price','mean'), Prezzo_mediano=('sold_price','median'))
                  .reset_index().sort_values('Venduti',ascending=False).reset_index(drop=True))
-        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250','139971','111422') else 'Famiglia'), 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
+        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250','139971') else 'Famiglia'), 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
         family_stats['Prezzo medio €']=family_stats['Prezzo medio €'].round(2)
         family_stats['Prezzo mediano €']=family_stats['Prezzo mediano €'].round(2)
         family_stats['Trend 30 gg']='N/D'
         family_stats['Tempo vendita']='N/D'
-        display_group = 'Modello' if export_id in ('20667','38250','139971','111422') else 'Famiglia'
+        display_group = 'Modello' if export_id in ('20667','38250','139971') else 'Famiglia'
         family_stats=family_stats[[display_group,'Venduti','Trend 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
@@ -286,7 +286,7 @@ if section == '🏷️ Categorie':
         chosen=family_stats.iloc[selected_indices][display_group].tolist() if selected_indices else []
         selected_data=subset[subset[group_level].isin(chosen)] if chosen else subset.iloc[0:0]
         if not chosen:
-            st.info('👆 Seleziona uno o più modelli per vedere statistiche e annunci.' if export_id in ('20667','38250','139971','111422') else '👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
+            st.info('👆 Seleziona uno o più modelli per vedere statistiche e annunci.' if export_id in ('20667','38250','139971') else '👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
         else:
             st.caption('📌 Selezionate: ' + ', '.join(chosen))
             c1,c2,c3,c4=st.columns(4)
@@ -299,7 +299,7 @@ if section == '🏷️ Categorie':
             st.download_button('📥 Esporta tutti gli annunci della famiglia (CSV)',
                 data=detail.to_csv(index=False).encode('utf-8-sig'),
                 file_name='venduti_ebay_famiglie.csv',mime='text/csv')
-            st.subheader('📋 Annunci dei modelli selezionati' if export_id in ('20667','38250','139971','111422') else '📋 Annunci delle famiglie selezionate')
+            st.subheader('📋 Annunci dei modelli selezionati' if export_id in ('20667','38250','139971') else '📋 Annunci delle famiglie selezionate')
             html_rows=[]
             for item in detail.head(100).itertuples(index=False):
                 title=escape(str(item.title or 'Senza titolo'))
