@@ -230,9 +230,9 @@ if section == '🏷️ Categorie':
                 help='Classificazione indicativa ricavata dal titolo; non sostituisce una verifica dell’annuncio.')
             if state_choice != 'Tutti':
                 subset = subset[subset['Stato prodotto'] == state_choice]
-            st.caption('Stato prodotto stimato dal titolo; il CSV completo contiene comunque tutti gli annunci e la relativa classificazione.')
+
         st.subheader('🧩 Brand / famiglie / modelli')
-        st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
+
         if export_id in ('20667','38250','139971','111422','175672'):
             def modello_commerciale(row):
                 import re
@@ -271,7 +271,7 @@ if section == '🏷️ Categorie':
             subset = subset.copy()
             subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971','111422','175672') else subset.apply(modello_commerciale, axis=1))
             group_level = 'Modello commerciale'
-            st.caption('Modelli commerciali riconosciuti e unificati (es. TM 5 = TM5). Quelli incerti restano separati; non vengono unificate le vendite.')
+
         else:
             group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
         # Demand ranking based on actual sale end dates, independent of initial listing dates.
@@ -304,20 +304,20 @@ if section == '🏷️ Categorie':
             delta=(current-previous)*100.0/previous
             return ('+' if delta > 0 else '') + f'{delta:.1f}%'
         family_stats['Trend 30 gg']=family_stats.apply(trend_label,axis=1)
-        st.markdown('#### 🐄 Prodotti più richiesti — ultimi 30 giorni')
+
         leaders=family_stats[family_stats['V30']>=5].sort_values(['V30','V7','Venduti'],ascending=False)
         if not leaders.empty:
             leader=leaders.iloc[0]
-            st.success(f"🏆 Più venduto recentemente: {leader[display_group]} — {int(leader['V30'])} venduti negli ultimi 30 giorni, prezzo mediano {leader['Prezzo']}.")
+            st.caption(f"🏆 Ultimi 30 gg: **{leader[display_group]}** · **{int(leader['V30'])} venduti** · mediana {leader['Prezzo']}")
         else:
             st.info('Non ci sono ancora modelli con almeno 5 vendite registrate negli ultimi 30 giorni.')
-        st.caption('Classifica basata sul numero di vendite archiviate: non equivale a margine di profitto o velocità di vendita. Lo storico può essere incompleto.')
-        ranking=st.selectbox('Ordina per', ['Più venduti ultimi 30 gg','Più venduti ultimi 7 gg','Più venduti in totale'],key='ebay_recent_ranking')
+
+        ranking=st.selectbox('Classifica', ['Più venduti ultimi 30 gg','Più venduti ultimi 7 gg','Più venduti in totale'],key='ebay_recent_ranking',label_visibility='collapsed')
         ranking_col={'Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
         family_stats=family_stats[[display_group,'Venduti','Venduti 7 gg','Venduti 30 gg','Trend 30 gg','Prezzo','Tempo vendita']]
-        st.caption('Trend 30 gg: variazione % delle vendite registrate nei 30 giorni più recenti rispetto ai 30 precedenti. N/D = periodo storico insufficiente o nessuna vendita nel periodo precedente. Lo storico eBay può essere parziale.')
+
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
