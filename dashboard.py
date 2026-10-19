@@ -12,6 +12,7 @@ from ebay_taxonomy import classify
 from kitchen_taxonomy import classify_kitchen
 from coffee_taxonomy import classify_coffee
 from console_taxonomy import classify_console
+from location_flags import flag_for_location
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
 ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971')
@@ -150,7 +151,7 @@ if section == '🏷️ Categorie':
     @st.cache_data(ttl=60, show_spinner=False)
     def taxonomy_data():
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
-                         s.title, s.sold_price, s.ended_at, s.url, s.image
+                         s.title, s.sold_price, s.ended_at, s.url, s.image, s.item_location
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
                          WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971')""")
         if raw.empty:
@@ -305,6 +306,8 @@ if section == '🏷️ Categorie':
                 url=str(item.url or '')
                 p=urlparse(url)
                 valid=p.scheme=='https' and bool(p.hostname) and (p.hostname=='ebay.it' or p.hostname.endswith('.ebay.it') or p.hostname=='ebay.com' or p.hostname.endswith('.ebay.com'))
+                flag,flag_info=flag_for_location(getattr(item,'item_location',None))
+                title = f'<span title="{escape(flag_info,quote=True)}">{flag}</span> ' + title
                 title_html=f'<a href="{escape(url,quote=True)}" target="_blank" rel="noopener noreferrer">{title}</a>' if valid else title
                 image_url=str(item.image or '')
                 img_parsed=urlparse(image_url)
@@ -337,6 +340,7 @@ elif section != '🏷️ Categorie':
     with connect() as con:
         columns = {r[1] for r in con.execute('PRAGMA table_info(sales)')}
     start_col = 'posted_at' if 'posted_at' in columns else ('listed_at' if 'listed_at' in columns else None)
+    select_location = ', item_location' if 'item_location' in columns else ', NULL AS item_location'
     select_start = ', ' + start_col + ' AS listed_at' if start_col else ', NULL AS listed_at'
     data = fetch('SELECT image, ended_at, title, sold_price, currency, url, COALESCE((SELECT name FROM categories WHERE category_id=sales.category_id), sales.category_id, \'Senza categoria\') AS category_name' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
 
@@ -364,6 +368,8 @@ elif section != '🏷️ Categorie':
     for _, item in data.iterrows():
         link = safe_link(item['url'])
         title = escape(str(item['title'] if pd.notna(item['title']) else 'Senza titolo'))
+        flag,flag_info=flag_for_location(item.get('item_location'))
+        title = f'<span title="{escape(flag_info,quote=True)}">{flag}</span> ' + title
         title_cell = f'<a href="{link}" target="_blank" rel="noopener noreferrer">{title}</a>' if link else title
         image_url = str(item['image']) if pd.notna(item['image']) else ''
         image_ok = urlparse(image_url).scheme == 'https'
