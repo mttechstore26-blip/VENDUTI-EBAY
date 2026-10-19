@@ -68,6 +68,32 @@ def normalized_model(row):
     lower = title.casefold()
     brand = str(row.get("Brand / Editore") or "Non identificato")
     model = str(row.get("Modello / Edizione") or "Modello non identificato")
+    # SMEG: normalize color/market suffixes only, never combine different generations.
+    # Demo codes are retained as supplied, not assumed equivalent to retail models.
+    if re.search(r"\bsmeg\b", lower):
+        demo = re.search(r"\b(?:smk|sek|scj|scg|scm)[-\s]?[a-z]{2}\d{2,3}\b", lower, re.I)
+        if demo:
+            return "SMEG " + demo.group(0).upper().replace(" ", "")
+        retail = re.search(r"\b(?:blf|smf|cgf|bcc|sjf|mgf|cjf|dcf|klf|tsf|ecf|bcl|pbf|hbf|bgb|mff|cpm|bml|bccc)\s*0?[1-9]\d?(?:[a-z]{2,5})?(?:us|uk|eu|it)?\b", lower, re.I)
+        if retail:
+            family = re.match(r"[a-z]+0?[1-9]\d?", retail.group(0), re.I)
+            if family:
+                return "SMEG " + family.group(0).upper()
+        if "bollitore" in lower and "tostapane" in lower:
+            return "SMEG Kit bollitore + tostapane (codici non indicati)"
+        descriptions = [
+            ("SMEG Bollitore (codice non indicato)", r"bollitore|kettle"),
+            ("SMEG Tostapane (codice non indicato)", r"tostapane|toaster"),
+            ("SMEG Macchina caffè filtro (codice non indicato)", r"caff[eè].*(?:goccia|filtro)|drip coffee"),
+            ("SMEG Macchina espresso (codice non indicato)", r"espresso"),
+            ("SMEG Macinacaffè (codice non indicato)", r"macinacaff"),
+            ("SMEG Frullatore (codice non indicato)", r"frullator|blender"),
+            ("SMEG Impastatrice (codice non indicato)", r"impastatrice|mixer da appoggio"),
+            ("SMEG Spremiagrumi (codice non indicato)", r"spremiagrum"),
+        ]
+        for name, pat in descriptions:
+            if re.search(pat, lower):
+                return name
     for b, m, pattern in KNOWN:
         if re.search(pattern, lower, re.I):
             return f"{b} {m}"
