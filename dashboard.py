@@ -217,30 +217,70 @@ if section == '🏷️ Categorie':
             st.caption('Stato prodotto stimato dal titolo; il CSV completo contiene comunque tutti gli annunci e la relativa classificazione.')
         st.subheader('🧩 Brand / famiglie / modelli')
         st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
-        group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
+        if export_id == '20667':
+            def modello_commerciale(row):
+                import re
+                title = str(row['title'] or '')
+                lower = title.lower()
+                brand = str(row['Brand / Editore'] or 'Non identificato')
+                model = str(row['Modello / Edizione'] or '').strip()
+                # Codici TM con e senza spazi: stesso modello commerciale.
+                tm = re.search(r'\\b(?:bimby|thermomix|vorwerk).*?\\btm\\s*[- ]?\\s*(31|5|6|7)\\b|\\btm\\s*[- ]?\\s*(31|5|6|7)\\b',lower)
+                if tm:
+                    return 'Vorwerk Bimby TM' + (tm.group(1) or tm.group(2))
+                if brand == 'KitchenAid':
+                    if re.search(r'\\bartisan\\b|\\b5ksm(?:125|150|175|185|195)\\w*\\b|\\bksm150\\w*\\b',lower):
+                        return 'KitchenAid Artisan Series 5'
+                    if re.search(r'\\bprofessional\\s*5\\s*plus\\b',lower):
+                        return 'KitchenAid Professional 5 Plus'
+                    if re.search(r'\\bk45ss\\b',lower):
+                        return 'KitchenAid Classic K45SS'
+                if brand == 'Vitamix':
+                    if re.search(r'\\b5200\\b|\\bvm0103\\b',lower):
+                        return 'Vitamix 5200 / VM0103'
+                if brand in ('Breville','Sage') and re.search(r'\\bbes870\\w*\\b|barista express',lower):
+                    return 'Breville / Sage Barista Express'
+                if brand == 'Champion' and re.search(r'g5[-\\s]?ng[-\\s]?853s',lower):
+                    return 'Champion G5-NG-853S'
+                # Scarta etichette descrittive, colori e parole che non sono modelli.
+                invalid = {'', 'modello non identificato', 'rosso', 'rossa', 'robot', 'attacchi',
+                           'attacco', 'attachments', 'royal', 'slice', 'camp er', 'camper',
+                           'robusto', 'ice cream', 'bianco', 'nera', 'nero', 'epicurean'}
+                if model.casefold() in invalid:
+                    return 'Altri modelli da identificare' if brand == 'Non identificato' else brand + ' — modello da identificare'
+                if brand == 'Non identificato':
+                    return 'Modello ' + model
+                return brand + ' ' + model
+            subset = subset.copy()
+            subset['Modello commerciale'] = subset.apply(modello_commerciale, axis=1)
+            group_level = 'Modello commerciale'
+            st.caption('Modelli commerciali riconosciuti e unificati (es. TM 5 = TM5). Quelli incerti restano separati; non vengono unificate le vendite.')
+        else:
+            group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
         family_stats=(subset.groupby(group_level,dropna=False)
                  .agg(Venduti=('item_id','size'), Prezzo_medio=('sold_price','mean'), Prezzo_mediano=('sold_price','median'))
                  .reset_index().sort_values('Venduti',ascending=False).reset_index(drop=True))
-        family_stats=family_stats.rename(columns={group_level:'Famiglia', 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
+        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id == '20667' else 'Famiglia'), 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
         family_stats['Prezzo medio €']=family_stats['Prezzo medio €'].round(2)
         family_stats['Prezzo mediano €']=family_stats['Prezzo mediano €'].round(2)
         family_stats['Trend 30 gg']='N/D'
         family_stats['Tempo vendita']='N/D'
-        family_stats=family_stats[['Famiglia','Venduti','Trend 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
+        display_group = 'Modello' if export_id == '20667' else 'Famiglia'
+        family_stats=family_stats[[display_group,'Venduti','Trend 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
-            column_config={'Famiglia':st.column_config.TextColumn('Famiglia',width='large'),
+            column_config={display_group:st.column_config.TextColumn(display_group,width='large'),
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Prezzo medio €':st.column_config.NumberColumn('Prezzo medio €',format='%.2f €'),
                            'Prezzo mediano €':st.column_config.NumberColumn('Prezzo mediano €',format='%.2f €')})
         selected_indices=state.selection.rows
-        chosen=family_stats.iloc[selected_indices]['Famiglia'].tolist() if selected_indices else []
+        chosen=family_stats.iloc[selected_indices][display_group].tolist() if selected_indices else []
         selected_data=subset[subset[group_level].isin(chosen)] if chosen else subset.iloc[0:0]
         if not chosen:
-            st.info('👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
+            st.info('👆 Seleziona uno o più modelli per vedere statistiche e annunci.' if export_id == '20667' else '👆 Seleziona una o più famiglie nella tabella per vedere statistiche e annunci.')
         else:
             st.caption('📌 Selezionate: ' + ', '.join(chosen))
             c1,c2,c3,c4=st.columns(4)
@@ -253,7 +293,7 @@ if section == '🏷️ Categorie':
             st.download_button('📥 Esporta tutti gli annunci della famiglia (CSV)',
                 data=detail.to_csv(index=False).encode('utf-8-sig'),
                 file_name='venduti_ebay_famiglie.csv',mime='text/csv')
-            st.subheader('📋 Annunci delle famiglie selezionate')
+            st.subheader('📋 Annunci dei modelli selezionati' if export_id == '20667' else '📋 Annunci delle famiglie selezionate')
             html_rows=[]
             for item in detail.head(100).itertuples(index=False):
                 title=escape(str(item.title or 'Senza titolo'))
