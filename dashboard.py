@@ -198,6 +198,11 @@ if section == '🏷️ Categorie':
         categories = sorted(taxonomy['category_name'].dropna().unique().tolist())
         cat_name = st.selectbox('Categoria',categories,key='radar_category')
         subset = taxonomy[taxonomy['category_name']==cat_name]
+        if str(subset['category_id'].iloc[0]) == '111422':
+            apple_period = st.selectbox('Periodo vendite Apple', ['Tutti i periodi', '1–19 ottobre 2026'], key='apple_history_period')
+            if apple_period == '1–19 ottobre 2026':
+                subset = subset[(subset['ended_at'].astype(str).str[:10] >= '2026-10-01') & (subset['ended_at'].astype(str).str[:10] <= '2026-10-19')].copy()
+                st.caption(f'📅 {len(subset)} venduti dal 1 al 19 ottobre 2026. Il filtro si applica a modelli, prezzi e CSV.')
         # Export completo, indipendente dalla selezione delle famiglie.
         # Usa i dati SQLite gia raccolti: nessuna richiesta SoldComps.
         export_rows = subset.sort_values('ended_at', ascending=False).copy()
