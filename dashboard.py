@@ -13,7 +13,7 @@ from kitchen_taxonomy import classify_kitchen
 from coffee_taxonomy import classify_coffee
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
-ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250')
+ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
 DB = (Path(__file__).resolve().parent / os.getenv('DB_PATH', './data/ebay_sold.db')).resolve()
 
@@ -60,7 +60,7 @@ def fetch(sql, params=()):
 def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
-                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250')
+                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971')
                     GROUP BY c.category_id,c.name ORDER BY c.name''')
 
 if 'category_id' not in [r[1] for r in sqlite3.connect(DB).execute('PRAGMA table_info(sales)').fetchall()]:
@@ -86,7 +86,7 @@ with st.sidebar:
     search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
     period = st.selectbox('Periodo', ['Tutti', 'Ultimi 7 giorni', 'Ultimi 30 giorni', 'Ultimi 90 giorni', 'Ultimi 365 giorni'])
     condition = st.selectbox('Condizione', ['Tutte', 'Nuovo', 'Di seconda mano'])
-    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446','101376','20667','38250')")
+    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971')")
     highest = int(max(70, max_df.iloc[0]['hi'] or 70))
     price_low = st.number_input('Prezzo minimo visualizzato (€)', min_value=70, max_value=max(70,highest), value=70, step=10)
     price_high = st.number_input('Prezzo massimo visualizzato (€)', min_value=int(price_low), value=max(highest,int(price_low)), step=20)
@@ -97,7 +97,7 @@ with st.sidebar:
         load_categories.clear()
         st.rerun()
 
-where = ["category_id IN ('141755','63','717','233','183446','101376','20667','38250')", 'sold_price >= ?', 'sold_price >= ?', 'sold_price <= ?']
+where = ["category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971')", 'sold_price >= ?', 'sold_price >= ?', 'sold_price <= ?']
 params = [70, float(price_low), float(price_high)]
 if selected_category is not None:
     where.append('category_id = ?')
@@ -151,7 +151,7 @@ if section == '🏷️ Categorie':
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
                          s.title, s.sold_price, s.ended_at, s.url, s.image
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
-                         WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250')""")
+                         WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971')""")
         if raw.empty:
             return raw
         parsed = []
@@ -209,7 +209,7 @@ if section == '🏷️ Categorie':
             key=f"download_category_{export_id}",
             help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
         )
-        if export_id in ('20667','38250'):
+        if export_id in ('20667','38250','139971'):
             state_choice = st.selectbox(
                 'Tipo prodotto', ['Tutti'] + sorted(subset['Stato prodotto'].dropna().unique().tolist()),
                 help='Classificazione indicativa ricavata dal titolo; non sostituisce una verifica dell’annuncio.')
@@ -218,7 +218,7 @@ if section == '🏷️ Categorie':
             st.caption('Stato prodotto stimato dal titolo; il CSV completo contiene comunque tutti gli annunci e la relativa classificazione.')
         st.subheader('🧩 Brand / famiglie / modelli')
         st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
-        if export_id in ('20667','38250'):
+        if export_id in ('20667','38250','139971'):
             def modello_commerciale(row):
                 import re
                 title = str(row['title'] or '')
@@ -262,12 +262,12 @@ if section == '🏷️ Categorie':
         family_stats=(subset.groupby(group_level,dropna=False)
                  .agg(Venduti=('item_id','size'), Prezzo_medio=('sold_price','mean'), Prezzo_mediano=('sold_price','median'))
                  .reset_index().sort_values('Venduti',ascending=False).reset_index(drop=True))
-        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250') else 'Famiglia'), 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
+        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250','139971') else 'Famiglia'), 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
         family_stats['Prezzo medio €']=family_stats['Prezzo medio €'].round(2)
         family_stats['Prezzo mediano €']=family_stats['Prezzo mediano €'].round(2)
         family_stats['Trend 30 gg']='N/D'
         family_stats['Tempo vendita']='N/D'
-        display_group = 'Modello' if export_id in ('20667','38250') else 'Famiglia'
+        display_group = 'Modello' if export_id in ('20667','38250','139971') else 'Famiglia'
         family_stats=family_stats[[display_group,'Venduti','Trend 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
