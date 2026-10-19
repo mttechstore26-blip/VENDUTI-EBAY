@@ -100,6 +100,46 @@ def classify_laptop(title):
  elif brand=="Fujitsu":
   m=re.search(r"\blifebook\s*([a-z]\d{3,4})\b",t)
   if m:model="Fujitsu Lifebook "+m.group(1).upper()
+
+ # Recovery pass for titles omitting the series name, and additional product lines.
+ if brand=="HP" and model=="Modello da identificare":
+  m=re.search(r"\b(?:hp\s*)?(845|840|830|850|855|645)\s*(g\d{1,2})\b",t)
+  if m:family="EliteBook" if m.group(1) in ("845","840","830","850","855") else "ProBook";model=f"HP {family} {m.group(1)} {m.group(2).upper()}"
+  else:
+   m=re.search(r"\b(?:elitebook\s*)?(x360\s*)?(830|840|845|850)\s*(g\d{1,2})\b",t)
+   if m:family="EliteBook";model=f"HP EliteBook {m.group(1) or ''}{m.group(2)} {m.group(3).upper()}".strip()
+   else:
+    m=re.search(r"\b(?:15s|14s|15[- ]eg\d[a-z0-9]*|15[- ]dw\d+|dv\d|zv\d{4}|spectre\s*x360|revolve\s*810|touchsmart\s*tm2[- ]?\d+)\b",t)
+    if m:family="HP consumer / vintage";model="HP "+m.group(0).upper()
+ if brand=="Lenovo" and model=="Modello da identificare":
+  m=re.search(r"\b(t\s*490s?|t\s*440p|t\s*14s?|x\s*13|x\s*12|w\s*530|x1\s*carbon|x1\s*yoga)\b",t)
+  if m:family="ThinkPad";mod=re.sub(r"\s+","",m.group(1).upper());model="Lenovo ThinkPad "+mod
+  if re.search(r"\b(?:gen|g)\s*([1-9])\b",t) and model.startswith("Lenovo ThinkPad"):
+   g=re.search(r"\b(?:gen|g)\s*([1-9])\b",t)
+   model+=" Gen "+g.group(1)
+  if model=="Modello da identificare":
+   m=re.search(r"\b(v15(?:[-\s]?(?:g[1-5]|gen\s*[1-5]))?|miix\s*\d{3}|z50|ideapad\s*\d(?:[-\w]*)?)\b",t)
+   if m:family="Lenovo V / Miix / IdeaPad";model="Lenovo "+re.sub(r"\s+"," ",m.group(1)).upper()
+ if brand=="Dell" and model=="Modello da identificare":
+  m=re.search(r"\b(?:dell\s*)?(3420|5490|5520|3510|3500|5300|5400|5410|5420|7420)\b",t)
+  if m:family="Dell codice modello (serie da verificare)";model="Dell "+m.group(1)+" (serie da verificare)"
+  m=re.search(r"\b(?:alienware)\s*(\d{2})\b",t)
+  if m:family="Alienware";model="Dell Alienware "+m.group(1)
+ if brand=="ASUS" and model=="Modello da identificare":
+  m=re.search(r"\b(zenbook\s*pro|zenbook|tuf\s*gaming|rog\s*strix|vivobook)\b",t)
+  if m:family=m.group(1).title();model="ASUS "+family+" (variante da verificare)"
+ if brand=="Acer" and model=="Modello da identificare":
+  m=re.search(r"\b(aspire\s*v?\s*v?5[-\s]?\d{3,4}[a-z]*|aspire\s*\d{4}[a-z]*|predator\s*helios\s*\d{3}|ferrari\s*\d{4})\b",t)
+  if m:family="Acer "+m.group(1).split()[0].title();model="Acer "+re.sub(r"\s+"," ",m.group(1)).upper()
+ if brand in ("Samsung","Fujitsu","MSI","Toshiba/Dynabook","Huawei") and model=="Modello da identificare":
+  patterns={
+   "Samsung":r"\b(?:galaxy\s*book\s*(?:4|3|2|s)|q1\s*ultra)\b",
+   "Fujitsu":r"\b(?:celsius\s*[a-z]\d{3}|lifebook\s*[a-z]\d{3,4}|u939x)\b",
+   "MSI":r"\b(?:gt\d{3,4}[a-z]*|gf\d{2}\s*thin\s*\w*|gf\d{2}|modern\s*\d+)\b",
+   "Toshiba/Dynabook":r"\b(?:qosmio\s*[a-z]\d{3}|satellite\s*[a-z]?\d{3,4}(?:[-\s]\d{3})?)\b",
+   "Huawei":r"\bmatebook\s*[dx]?\s*\d{2}\b"}
+  m=re.search(patterns[brand],t)
+  if m:family=brand+" serie";model=brand+" "+re.sub(r"\s+"," ",m.group(0)).upper()
  if model=="Modello da identificare" and brand!="Marchio non identificato":model=brand+" — modello da identificare"
  if re.search(r"\b(?:icloud\s*(?:lock|blocc)|mdm|remote\s*management|gestione\s*remota|bloccato|per\s*ricambi|for\s*parts|non\s*funzionante|non\s*si\s*accende|guast[oa]|rotto|broken|senza\s*audio|no\s*audio|solo\s*scatola|box\s*only)\b",t):
   status="⚠️ Bloccato / guasto / ricambi"
