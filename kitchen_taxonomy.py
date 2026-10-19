@@ -39,7 +39,13 @@ def classify_kitchen(title):
     parts_only = r"\b(?:solo\s+(?:motore|base|ciotola|coperchio|caraffa|vaso|ricambi|accessori|pannello|scheda)|only\s+(?:base|motor|bowl|jar|lid|parts)|motor\s+base\s+only|replacement\s+(?:part|bowl|jar|lid|motor)|ricambio|ricambi|spare\s+parts?|scheda\s+(?:elettronica|madre)|control\s+board|display\s+board|inverter\s+board|pannello\s+comandi|per\s+pezzi|for\s+parts|non\s+funzionante|not\s+working|broken)\b"
     accessories = r"\b(?:accessorio\s+(?:per|di)|accessori\s+(?:per|di)|attachment\s+for|attachments?\s+only|solo\s+accessori|frusta\s+per|gancio\s+per|coperchio\s+per|ciotola\s+per|bowl\s+for|jar\s+for|tamper\s+for|filtro\s+di\s+ricambio|kit\s+(?:accessori|ricambi))\b"
     incomplete = r"\b(?:senza\s+(?:ciotola|caraffa|coperchio|motore|accessori)|missing\s+(?:bowl|jar|lid|motor|parts)|incomplet[oa]|da\s+riparare|da\s+testare|untested|non\s+testato|as.is)\b"
-    if match(parts_only, t):
+    # Explicit standalone components often missing the word "ricambio".
+    components = r"\b(?:scheda (?:alimentazione|pc|di controllo|elettronica)|display board|digitron|control panel|pannello di controllo|porta completa|scheda madre|power board|microonde.*(?:scheda|pannello)|(?:wb27x|wb07x|de92-|eax\d|ebr\d|adc\d{6,})[a-z0-9-]*)\b"
+    if match(components, t):
+        condition = "Ricambio / non funzionante"
+    elif match(r"\b(?:dispositivo base|unità base|unita base|base unit)\b", t):
+        condition = "Incompleto / da verificare"
+    elif match(parts_only, t):
         condition = "Ricambio / non funzionante"
     elif match(accessories, t):
         condition = "Accessorio"
