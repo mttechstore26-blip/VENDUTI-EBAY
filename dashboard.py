@@ -12,6 +12,7 @@ from ebay_taxonomy import classify
 from kitchen_taxonomy import classify_kitchen
 from coffee_taxonomy import classify_coffee
 from console_taxonomy import classify_console
+from apple_laptop_taxonomy import classify_apple_laptop
 from location_flags import flag_for_location
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
@@ -164,6 +165,8 @@ if section == '🏷️ Categorie':
                 parsed.append(classify_coffee(r.title))
             elif str(r.category_id) == '139971':
                 parsed.append(classify_console(r.title))
+            elif str(r.category_id) == '111422':
+                parsed.append(classify_apple_laptop(r.title))
             else:
                 parsed.append((*classify(r.category_id, r.title), 'Non applicabile'))
         raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione','Stato prodotto']] = pd.DataFrame(parsed,index=raw.index)
