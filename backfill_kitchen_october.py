@@ -65,8 +65,10 @@ try:
             inserted += row.rowcount
         db.commit()
         print(f"Pagina {page}: {len(items)} annunci, più vecchio={min(dates) if dates else 'N/D'}, nuovi totali={inserted}, quota precedente={remaining}",flush=True)
-        if dates and min(dates) <= TARGET:
-            print("Raggiunto il 1 ottobre: stop.",flush=True)
+        # Do not stop on one out-of-order historical sale.
+        # Stop only when every dated item on the page predates the target.
+        if dates and max(dates) < TARGET:
+            print("Pagina interamente precedente al 1 ottobre: stop.",flush=True)
             break
         if not payload.get("hasNextPage") or not items:
             print("Nessun'altra pagina disponibile.",flush=True)
