@@ -140,6 +140,41 @@ def classify_laptop(title):
    "Huawei":r"\bmatebook\s*[dx]?\s*\d{2}\b"}
   m=re.search(patterns[brand],t)
   if m:family=brand+" serie";model=brand+" "+re.sub(r"\s+"," ",m.group(0)).upper()
+ # Second HP pass, grounded in titles from the unknown-model export.
+ if brand=="HP" and model=="Modello da identificare":
+  hp_rules=[
+   ("ProBook","ProBook x360",r"\bprobook\s*x360\s*(435)\s*(g\d+)\b"),
+   ("ZBook","ZBook",r"\bzbook\s*(14u|15u|17|15)\s*(g\d+)\b"),
+   ("ProBook","ProBook",r"\b(?:probook\s*)?(430|440|450|470|640|645|650)\s*[- ]?(g\d{1,2})\b"),
+   ("ProBook","ProBook",r"\b(?:probook\s*)?(4330s|6820s)\b"),
+   ("HP 250","HP",r"\b(250rt)\s*(g\d+)\b"),
+   ("Pavilion Gaming","Pavilion Gaming",r"\bpavilion\s*gaming\s*(15[-\s]?[a-z0-9]+)?\b"),
+   ("Pavilion x360","Pavilion x360",r"\bpavilion\s*x360(?:\s*convertible)?\s*(14[-\s]?[a-z0-9]+)?\b"),
+   ("Envy x360","Envy x360",r"\benvy\s*x360\b"),
+   ("Pavilion","Pavilion",r"\bpavilion\s*(?:sleekbook\s*)?(15[-\s]?[a-z0-9]+)\b"),
+   ("Envy","Envy",r"\benvy\b"),
+   ("Compaq","Compaq",r"\b(?:hp\s*)?compaq\s*(nc\s*6120|6820s)\b"),
+  ]
+  for fam,label,pat in hp_rules:
+   match=re.search(pat,t)
+   if not match:continue
+   family=fam
+   suffix=" ".join(g.upper().replace(" ","-") for g in match.groups() if g)
+   if fam=="HP 250":model="HP "+suffix
+   else:model="HP "+label+(" "+suffix if suffix else " (variante non specificata)")
+   break
+  if model=="Modello da identificare":
+   # Series without enough identifying detail: never invent a precise model.
+   line=next((x for x in ("ProBook","ZBook","Pavilion","Envy","EliteBook") if re.search(r"\b"+x+r"\b",t,re.I)),None)
+   if line:
+    family=line
+    screen=re.search(r"\b(13|14|15|17)(?:[,.][0367])?\s*(?:\"|pollici|inch)\b",t)
+    model="HP "+line+" — modello non specificato"+(" "+screen.group(1)+'"' if screen else "")
+   else:
+    screen=re.search(r"\b(13|14|15|17)(?:[,.][0367])?\s*(?:\"|pollici|inch)\b",t)
+    if screen:
+     family="HP Notebook"
+     model="HP Notebook "+screen.group(1)+'" — modello non specificato'
  if model=="Modello da identificare" and brand!="Marchio non identificato":model=brand+" — modello da identificare"
  if re.search(r"\b(?:icloud\s*(?:lock|blocc)|mdm|remote\s*management|gestione\s*remota|bloccato|per\s*ricambi|for\s*parts|non\s*funzionante|non\s*si\s*accende|guast[oa]|rotto|broken|senza\s*audio|no\s*audio|solo\s*scatola|box\s*only)\b",t):
   status="⚠️ Bloccato / guasto / ricambi"
