@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from ebay_taxonomy import classify
+from kitchen_taxonomy import classify_kitchen
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
 ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667')
@@ -152,8 +153,13 @@ if section == '🏷️ Categorie':
                          WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667')""")
         if raw.empty:
             return raw
-        parsed = [classify(r.category_id,r.title) for r in raw.itertuples(index=False)]
-        raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = pd.DataFrame(parsed,index=raw.index)
+        parsed = []
+        for r in raw.itertuples(index=False):
+            if str(r.category_id) == '20667':
+                parsed.append(classify_kitchen(r.title))
+            else:
+                parsed.append((*classify(r.category_id, r.title), 'Non applicabile'))
+        raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione','Stato prodotto']] = pd.DataFrame(parsed,index=raw.index)
         # Promote repeated identifiable models to their own clickable family.
         # Keep the source family as a grouping key: comic issue 1 in one series
         # must never be mixed with issue 1 in another series.
@@ -200,6 +206,15 @@ if section == '🏷️ Categorie':
             key=f"download_category_{export_id}",
             help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
         )
+        if export_id == '20667':
+            state_choice = st.selectbox(
+                'Tipo prodotto', ['Tutti', 'Apparecchio presumibilmente completo',
+                                 'Incompleto / da verificare', 'Accessorio',
+                                 'Ricambio / non funzionante'],
+                help='Classificazione indicativa ricavata dal titolo; non sostituisce una verifica dell’annuncio.')
+            if state_choice != 'Tutti':
+                subset = subset[subset['Stato prodotto'] == state_choice]
+            st.caption('Stato prodotto stimato dal titolo; il CSV completo contiene comunque tutti gli annunci e la relativa classificazione.')
         st.subheader('🧩 Brand / famiglie / modelli')
         st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
         group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
