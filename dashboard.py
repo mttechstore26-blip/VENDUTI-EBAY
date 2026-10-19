@@ -342,7 +342,7 @@ elif section != '🏷️ Categorie':
     start_col = 'posted_at' if 'posted_at' in columns else ('listed_at' if 'listed_at' in columns else None)
     select_location = ', item_location' if 'item_location' in columns else ', NULL AS item_location'
     select_start = ', ' + start_col + ' AS listed_at' if start_col else ', NULL AS listed_at'
-    data = fetch('SELECT image, ended_at, title, sold_price, currency, url, COALESCE((SELECT name FROM categories WHERE category_id=sales.category_id), sales.category_id, \'Senza categoria\') AS category_name' + select_start + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
+    data = fetch('SELECT image, ended_at, title, sold_price, currency, url, COALESCE((SELECT name FROM categories WHERE category_id=sales.category_id), sales.category_id, \'Senza categoria\') AS category_name' + select_start + select_location + ' FROM sales WHERE ' + where_sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?', tuple(params + [int(page_size), (int(current)-1)*page_size]))
 
     def safe_link(raw):
         value = str(raw or '').strip()
