@@ -282,21 +282,42 @@ if section == '🏷️ Categorie':
         recent['_sale_day'] = sold_dates
         recent['_7d'] = ((sold_dates >= end_day - pd.Timedelta(days=6)) & (sold_dates < end_day + pd.Timedelta(days=1))).astype(int)
         recent['_30d'] = ((sold_dates >= end_day - pd.Timedelta(days=29)) & (sold_dates < end_day + pd.Timedelta(days=1))).astype(int)
+        recent['_prev30d'] = ((sold_dates >= end_day - pd.Timedelta(days=59)) & (sold_dates < end_day - pd.Timedelta(days=29))).astype(int)
+        recent['_valid_date'] = sold_dates.notna().astype(int)
         family_stats=(recent.groupby(group_level,dropna=False)
-                 .agg(Venduti=('item_id','size'), Venduti_7=('_7d','sum'),
-                      Venduti_30=('_30d','sum'), Prezzo_medio=('sold_price','mean'),
-                      Prezzo_mediano=('sold_price','median'))
-                 .reset_index())
-        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'), 'Venduti_7':'Ultimi 7 gg','Venduti_30':'Ultimi 30 gg', 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
-        family_stats['Prezzo medio €']=family_stats['Prezzo medio €'].round(2)
-        family_stats['Prezzo mediano €']=family_stats['Prezzo mediano €'].round(2)
-        family_stats['Tempo vendita']='N/D'
+            .agg(Venduti=('item_id','size'), V7=('_7d','sum'), V30=('_30d','sum'),
+                 Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'))
+            .reset_index())
         display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'
-        ranking = st.selectbox('Ordina modelli per', ['Più venduti ultimi 30 gg', 'Più venduti ultimi 7 gg', 'Più venduti in totale'], key='ebay_recent_ranking')
-        ranking_col = {'Più venduti ultimi 30 gg':'Ultimi 30 gg', 'Più venduti ultimi 7 gg':'Ultimi 7 gg', 'Più venduti in totale':'Venduti'}[ranking]
-        family_stats=family_stats.sort_values([ranking_col,'Venduti','Prezzo mediano €'],ascending=[False,False,False],kind='stable').reset_index(drop=True)
-        family_stats=family_stats[[display_group,'Venduti','Ultimi 7 gg','Ultimi 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
-        st.caption('📈 Le classifiche contano gli annunci venduti registrati nelle finestre recenti. Raccolte storiche incomplete possono sottostimare la domanda; non è un confronto percentuale.')
+        family_stats=family_stats.rename(columns={group_level:display_group})
+        family_stats['Prezzo']=family_stats['Prezzo'].apply(eur)
+        family_stats['Tempo vendita']='N/D'
+        # A full comparable 60-day history is not available for newly backfilled categories.
+        # Earliest record alone does not prove continuous coverage, so label the comparison indicative.
+        earliest = sold_dates.min()
+        enough_history = pd.notna(earliest) and earliest <= end_day - pd.Timedelta(days=59)
+        def trend_label(row):
+            previous=int(row['Prev30'])
+            current=int(row['V30'])
+            if not enough_history or previous == 0:
+                return 'N/D'
+            delta=(current-previous)*100.0/previous
+            return ('+' if delta > 0 else '') + f'{delta:.1f}%'
+        family_stats['Trend 30 gg']=family_stats.apply(trend_label,axis=1)
+        st.markdown('#### 🐄 Prodotti più richiesti — ultimi 30 giorni')
+        leaders=family_stats[family_stats['V30']>=5].sort_values(['V30','V7','Venduti'],ascending=False)
+        if not leaders.empty:
+            leader=leaders.iloc[0]
+            st.success(f"🏆 Più venduto recentemente: {leader[display_group]} — {int(leader['V30'])} venduti negli ultimi 30 giorni, prezzo mediano {leader['Prezzo']}.")
+        else:
+            st.info('Non ci sono ancora modelli con almeno 5 vendite registrate negli ultimi 30 giorni.')
+        st.caption('Classifica basata sul numero di vendite archiviate: non equivale a margine di profitto o velocità di vendita. Lo storico può essere incompleto.')
+        ranking=st.selectbox('Ordina per', ['Più venduti ultimi 30 gg','Più venduti ultimi 7 gg','Più venduti in totale'],key='ebay_recent_ranking')
+        ranking_col={'Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
+        family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
+        family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
+        family_stats=family_stats[[display_group,'Venduti','Venduti 7 gg','Venduti 30 gg','Trend 30 gg','Prezzo','Tempo vendita']]
+        st.caption('Trend 30 gg: variazione % delle vendite registrate nei 30 giorni più recenti rispetto ai 30 precedenti. N/D = periodo storico insufficiente o nessuna vendita nel periodo precedente. Lo storico eBay può essere parziale.')
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
