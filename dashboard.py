@@ -182,6 +182,24 @@ if section == '🏷️ Categorie':
         categories = sorted(taxonomy['category_name'].dropna().unique().tolist())
         cat_name = st.selectbox('Categoria',categories,key='radar_category')
         subset = taxonomy[taxonomy['category_name']==cat_name]
+        # Export completo, indipendente dalla selezione delle famiglie.
+        # Usa i dati SQLite gia raccolti: nessuna richiesta SoldComps.
+        export_rows = subset.sort_values('ended_at', ascending=False).copy()
+        export_rows = export_rows.rename(columns={
+            'category_name': 'Categoria', 'category_id': 'ID categoria',
+            'item_id': 'ID annuncio', 'title': 'Titolo',
+            'sold_price': 'Prezzo venduto EUR', 'ended_at': 'Data vendita',
+            'url': 'URL annuncio', 'image': 'URL immagine',
+        })
+        export_id = str(subset['category_id'].iloc[0])
+        st.download_button(
+            f"📥 Scarica CSV completo della categoria ({len(export_rows)} venduti)",
+            data=export_rows.to_csv(index=False).encode('utf-8-sig'),
+            file_name=f"venduti_ebay_categoria_{export_id}.csv",
+            mime='text/csv',
+            key=f"download_category_{export_id}",
+            help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
+        )
         st.subheader('🧩 Brand / famiglie / modelli')
         st.caption('Seleziona una o più righe dalla tabella per analizzare le vendite. I raggruppamenti sono stimati dal titolo dell’annuncio.')
         group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
