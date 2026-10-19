@@ -71,6 +71,8 @@ def fetch_page(page):
             'page': page, 'count': int(os.getenv('COUNT_PER_PAGE', '240')),
             'sortOrder': 'endedRecently',
             'minPrice': float(os.getenv('MIN_PRICE', '70'))}
+    if os.getenv('EBAY_CONDITION_ID', '').strip():
+        args['conditionId'] = int(os.getenv('EBAY_CONDITION_ID'))
     r = requests.get(API, params=args, headers={'Authorization': f'Bearer {key}',
         'X-Credit-Source': 'subscription-only'}, timeout=70)
     if r.status_code == 429:
@@ -86,6 +88,7 @@ def run():
     category_name = os.getenv('EBAY_CATEGORY_NAME', 'Album di figurine' if category_id=='141755' else 'Categoria '+category_id)
     conn.execute('INSERT INTO categories(category_id,name) VALUES (?,?) ON CONFLICT(category_id) DO UPDATE SET name=excluded.name', (category_id,category_name))
     conn.commit()
+    baseline_exists = conn.execute('SELECT 1 FROM sales WHERE category_id=? LIMIT 1', (category_id,)).fetchone() is not None
     items_seen = inserted = 0
     status, message = 'ok', ''
     try:
@@ -114,7 +117,6 @@ def run():
                 if cur.rowcount:
                     inserted += 1
                     # The initial ingestion is a baseline; do not flood Telegram with historical data.
-                    baseline_exists = conn.execute('SELECT COUNT(*) FROM runs WHERE status="ok"').fetchone()[0] > 0
                     if baseline_exists:
                         notify(item)
             conn.commit()
