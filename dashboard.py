@@ -274,16 +274,29 @@ if section == '🏷️ Categorie':
             st.caption('Modelli commerciali riconosciuti e unificati (es. TM 5 = TM5). Quelli incerti restano separati; non vengono unificate le vendite.')
         else:
             group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
-        family_stats=(subset.groupby(group_level,dropna=False)
-                 .agg(Venduti=('item_id','size'), Prezzo_medio=('sold_price','mean'), Prezzo_mediano=('sold_price','median'))
-                 .reset_index().sort_values('Venduti',ascending=False).reset_index(drop=True))
-        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'), 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
+        # Demand ranking based on actual sale end dates, independent of initial listing dates.
+        # Windows end at the current UTC day; do not include future-dated records.
+        end_day = pd.Timestamp.now(tz='UTC').normalize()
+        sold_dates = pd.to_datetime(subset['ended_at'], errors='coerce', utc=True)
+        recent = subset.copy()
+        recent['_sale_day'] = sold_dates
+        recent['_7d'] = ((sold_dates >= end_day - pd.Timedelta(days=6)) & (sold_dates < end_day + pd.Timedelta(days=1))).astype(int)
+        recent['_30d'] = ((sold_dates >= end_day - pd.Timedelta(days=29)) & (sold_dates < end_day + pd.Timedelta(days=1))).astype(int)
+        family_stats=(recent.groupby(group_level,dropna=False)
+                 .agg(Venduti=('item_id','size'), Venduti_7=('_7d','sum'),
+                      Venduti_30=('_30d','sum'), Prezzo_medio=('sold_price','mean'),
+                      Prezzo_mediano=('sold_price','median'))
+                 .reset_index())
+        family_stats=family_stats.rename(columns={group_level:('Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'), 'Venduti_7':'Ultimi 7 gg','Venduti_30':'Ultimi 30 gg', 'Prezzo_medio':'Prezzo medio €','Prezzo_mediano':'Prezzo mediano €'})
         family_stats['Prezzo medio €']=family_stats['Prezzo medio €'].round(2)
         family_stats['Prezzo mediano €']=family_stats['Prezzo mediano €'].round(2)
-        family_stats['Trend 30 gg']='N/D'
         family_stats['Tempo vendita']='N/D'
         display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'
-        family_stats=family_stats[[display_group,'Venduti','Trend 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
+        ranking = st.selectbox('Ordina modelli per', ['Più venduti ultimi 30 gg', 'Più venduti ultimi 7 gg', 'Più venduti in totale'], key='ebay_recent_ranking')
+        ranking_col = {'Più venduti ultimi 30 gg':'Ultimi 30 gg', 'Più venduti ultimi 7 gg':'Ultimi 7 gg', 'Più venduti in totale':'Venduti'}[ranking]
+        family_stats=family_stats.sort_values([ranking_col,'Venduti','Prezzo mediano €'],ascending=[False,False,False],kind='stable').reset_index(drop=True)
+        family_stats=family_stats[[display_group,'Venduti','Ultimi 7 gg','Ultimi 30 gg','Prezzo medio €','Prezzo mediano €','Tempo vendita']]
+        st.caption('📈 Le classifiche contano gli annunci venduti registrati nelle finestre recenti. Raccolte storiche incomplete possono sottostimare la domanda; non è un confronto percentuale.')
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
