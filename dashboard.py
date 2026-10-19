@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from ebay_taxonomy import classify
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
-ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376')
+ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
 DB = (Path(__file__).resolve().parent / os.getenv('DB_PATH', './data/ebay_sold.db')).resolve()
 
@@ -58,7 +58,7 @@ def fetch(sql, params=()):
 def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
-                    WHERE c.category_id IN ('141755','63','717','233','183446','101376')
+                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667')
                     GROUP BY c.category_id,c.name ORDER BY c.name''')
 
 if 'category_id' not in [r[1] for r in sqlite3.connect(DB).execute('PRAGMA table_info(sales)').fetchall()]:
@@ -84,7 +84,7 @@ with st.sidebar:
     search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
     period = st.selectbox('Periodo', ['Tutti', 'Ultimi 7 giorni', 'Ultimi 30 giorni', 'Ultimi 90 giorni', 'Ultimi 365 giorni'])
     condition = st.selectbox('Condizione', ['Tutte', 'Nuovo', 'Di seconda mano'])
-    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446','101376')")
+    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446','101376','20667')")
     highest = int(max(70, max_df.iloc[0]['hi'] or 70))
     price_low = st.number_input('Prezzo minimo visualizzato (€)', min_value=70, max_value=max(70,highest), value=70, step=10)
     price_high = st.number_input('Prezzo massimo visualizzato (€)', min_value=int(price_low), value=max(highest,int(price_low)), step=20)
@@ -95,7 +95,7 @@ with st.sidebar:
         load_categories.clear()
         st.rerun()
 
-where = ["category_id IN ('141755','63','717','233','183446','101376')", 'sold_price >= ?', 'sold_price >= ?', 'sold_price <= ?']
+where = ["category_id IN ('141755','63','717','233','183446','101376','20667')", 'sold_price >= ?', 'sold_price >= ?', 'sold_price <= ?']
 params = [70, float(price_low), float(price_high)]
 if selected_category is not None:
     where.append('category_id = ?')
@@ -149,7 +149,7 @@ if section == '🏷️ Categorie':
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
                          s.title, s.sold_price, s.ended_at, s.url, s.image
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
-                         WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376')""")
+                         WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667')""")
         if raw.empty:
             return raw
         parsed = [classify(r.category_id,r.title) for r in raw.itertuples(index=False)]
