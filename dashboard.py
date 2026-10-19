@@ -65,7 +65,7 @@ def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
                     WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672')
-                    GROUP BY c.category_id,c.name ORDER BY c.name''')
+                    GROUP BY c.category_id,c.name ORDER BY n DESC, c.name ASC''')
 
 if 'category_id' not in [r[1] for r in sqlite3.connect(DB).execute('PRAGMA table_info(sales)').fetchall()]:
     st.error('Database da aggiornare: esegui prima upgrade_categories.py sulla VPS.')
@@ -77,7 +77,13 @@ except sqlite3.OperationalError:
     st.error('Tabella categorie mancante: esegui upgrade_categories.py sulla VPS.')
     st.stop()
 
-names={str(r.category_id): f'{r.name} ({int(r.n)} venduti)' for r in category_df.itertuples(index=False)}
+CATEGORY_ICONS = {
+    '141755':'⚽', '63':'📚', '717':'🧸', '233':'🎲',
+    '183446':'🧱', '101376':'🪆', '20667':'🍳', '38250':'☕',
+    '139971':'🎮', '111422':'🍎', '175672':'💻',
+}
+category_df = category_df.sort_values(['n','name'], ascending=[False,True], kind='stable')
+names={str(r.category_id): f"{CATEGORY_ICONS.get(str(r.category_id),'📦')} {r.name} ({int(r.n)} venduti)" for r in category_df.itertuples(index=False)}
 
 
 with st.sidebar:
