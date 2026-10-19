@@ -1,6 +1,6 @@
 """Quota-safe category-wide SoldComps scheduler.
 
-Seven monitored categories every six hours (00,06,12,18).
+Eight monitored categories every six hours (00,06,12,18).
 Respect monthly reserve and refuse extra-credit API charges.
 """
 import os
@@ -50,6 +50,7 @@ categories = [
     ("183446", "Costruzioni", "100"),
     ("101376", "Bambole vintage", "160"),
     ("20667", "Piccoli elettrodomestici per la cucina", "100"),
+    ("38250", "Macchine da caffè", "100"),
 ]
 slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
@@ -83,10 +84,13 @@ for category_id, category_name, min_price in jobs:
         "MIN_PRICE": min_price,
         "MAX_PAGES_PER_RUN": "1",
     })
-    # Only kitchen appliances are restricted to eBay used condition (3000).
+    # Per-category filters: avoid leaking limits into other categories.
     env.pop("EBAY_CONDITION_ID", None)
-    if category_id == "20667":
+    env.pop("MAX_PRICE", None)
+    if category_id in ("20667", "38250"):
         env["EBAY_CONDITION_ID"] = "3000"
+    if category_id == "38250":
+        env["MAX_PRICE"] = "300"
     result = subprocess.run([sys.executable, str(ROOT / "collector.py")],
                             cwd=ROOT, env=env, check=False)
     if result.returncode:
