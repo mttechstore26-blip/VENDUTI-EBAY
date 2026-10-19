@@ -28,6 +28,8 @@ def connect():
         inserted INTEGER, status TEXT, message TEXT
     )''')
     cols = {r[1] for r in conn.execute('PRAGMA table_info(sales)')}
+    if 'item_location' not in cols:
+        conn.execute('ALTER TABLE sales ADD COLUMN item_location TEXT')
     if 'category_id' not in cols:
         conn.execute('ALTER TABLE sales ADD COLUMN category_id TEXT')
     conn.execute('CREATE TABLE IF NOT EXISTS categories (category_id TEXT PRIMARY KEY, name TEXT NOT NULL)')
@@ -123,6 +125,12 @@ def run():
                     # The initial ingestion is a baseline; do not flood Telegram with historical data.
                     if baseline_exists:
                         notify(item)
+            # Restore the optional location for existing IDs without duplicating sales.
+            for item in items:
+                loc = item.get('itemLocation')
+                if loc and item.get('itemId'):
+                    conn.execute('UPDATE sales SET item_location=? WHERE site=? AND item_id=? AND (item_location IS NULL OR item_location=\'\')',
+                                 (str(loc), site, str(item.get('itemId'))))
             conn.commit()
             if not payload.get('hasNextPage'):
                 break
