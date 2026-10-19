@@ -71,6 +71,8 @@ def fetch_page(page):
             'page': page, 'count': int(os.getenv('COUNT_PER_PAGE', '240')),
             'sortOrder': 'endedRecently',
             'minPrice': float(os.getenv('MIN_PRICE', '70'))}
+    if os.getenv('MAX_PRICE', '').strip():
+        args['maxPrice'] = float(os.getenv('MAX_PRICE'))
     if os.getenv('EBAY_CONDITION_ID', '').strip():
         args['conditionId'] = int(os.getenv('EBAY_CONDITION_ID'))
     r = requests.get(API, params=args, headers={'Authorization': f'Bearer {key}',
@@ -100,6 +102,8 @@ def run():
             for item in items:
                 price = number(item.get('soldPrice'))
                 if price is None or price < float(os.getenv('MIN_PRICE', '70')):
+                    continue
+                if os.getenv('MAX_PRICE', '').strip() and price > float(os.getenv('MAX_PRICE')):
                     continue
                 item_id = str(item.get('itemId') or '')
                 if not item_id:
