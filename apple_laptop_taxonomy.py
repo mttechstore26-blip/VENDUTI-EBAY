@@ -3,6 +3,43 @@ No inference of CPU, model year, SSD or condition where unmentioned.
 """
 import re
 
+
+# Intel MacBook Pro: distinguish year and screen because value changes strongly.
+# A-numbers may span more than one year: never invent one from a chassis code.
+INTEL_PRO_CHASSIS = {
+ "a1278": ('13"', None), "a1286": ('15"', None),
+ "a1297": ('17"', None), "a1398": ('15"', None),
+ "a1425": ('13"', None), "a1502": ('13"', None),
+ "a1706": ('13"', None), "a1708": ('13"', None),
+ "a1989": ('13"', None), "a2159": ('13"', "2019"),
+ "a2251": ('13"', "2020"), "a2289": ('13"', "2020"),
+ "a2141": ('16"', "2019"), "a1990": ('15"', None),
+ "a1707": ('15"', None), "a2442": ('14"', None),
+}
+def intel_pro_model(t, inches, yr):
+    match = re.search(r'\b(a1\d{3}|a2\d{3}|a3\d{3})\b', t)
+    chassis = match.group(1).lower() if match else ""
+    mapping = INTEL_PRO_CHASSIS.get(chassis)
+    if mapping:
+        if inches and inches != mapping[0]:
+            # Conflicting title information: show the uncertain label, not false precision.
+            return "MacBook Pro Intel — dimensione da verificare (" + chassis.upper() + ")"
+        inches = inches or mapping[0]
+        yr = yr or mapping[1] or ""
+    if not inches:
+        raw = re.search(r'\b(13|15|16|17)(?:[,.][0-9])?\s*(?:inch|inches)\b|\b(?:macbook\s*pro|pro)\s*(13|15|16|17)(?=\b|\s)',t)
+        if raw: inches = (raw.group(1) or raw.group(2)) + '"'
+    if not yr and re.search(r'\b(?:4a|4°|fourth|4th)\s*(?:generazione|gen)\b',t):
+        # Intel 4th generation alone does not establish Apple model year.
+        pass
+    model = "MacBook Pro Intel" + (" " + inches if inches else "")
+    if yr: model += " (" + yr + ")"
+    else: model += " — anno non specificato"
+    if chassis and not yr:
+        model += " · " + chassis.upper()
+    # Mark screen-less / year-less titles honestly; retain chip and chassis in group.
+    return model
+
 def classify_apple_laptop(title):
     t = str(title or '').lower().replace('’', "'")
     has_apple = bool(re.search(r'\b(?:apple|macbook|mac book|a1\d{3}|a2\d{3}|a3\d{3})\b', t))
@@ -30,12 +67,18 @@ def classify_apple_laptop(title):
     storage=(disk.group(1)+'GB SSD' if disk.group(1) else disk.group(2)+'TB SSD') if disk else ""
     if chip == "Chip non specificato" and yr and int(yr) < 2020:
         chip = "Intel"  # MacBook pre-Apple-Silicon model years
+    # Pro models announced before the Apple Silicon transition are Intel;
+    # 2020 remains ambiguous unless processor or Intel-only chassis is explicit.
+    if family == "MacBook Pro" and chip == "Chip non specificato" and re.search(r'\b(?:a1706|a1707|a1708|a1989|a1990|a1398|a1502|a1425|a1286|a1297|a1278|a2141|a2159|a2251|a2289)\b',t):
+        chip = "Intel"
     # Canonical commercial groups: do not split on optional year or size.
     # Keep ambiguous family/chip identities distinct rather than guessing.
     if family == "MacBook Air":
         model = "MacBook Air " + chip
         if inches == '15"' and chip in ("M2", "M3", "M4", "M5"):
             model += ' 15"'
+    elif family == "MacBook Pro" and chip == "Intel":
+        model = intel_pro_model(t, inches, yr)
     elif family == "MacBook Pro":
         model = "MacBook Pro " + chip
         if inches in ('14"', '16"'):
