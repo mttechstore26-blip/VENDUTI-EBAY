@@ -247,7 +247,8 @@ if section == '🏷️ Categorie':
                            'attacco', 'attachments', 'royal', 'slice', 'camp er', 'camper',
                            'robusto', 'ice cream', 'bianco', 'nera', 'nero', 'epicurean'}
                 if model.casefold() in invalid:
-                    return 'Altri modelli da identificare' if brand == 'Non identificato' else brand + ' — modello da identificare'
+                    from kitchen_model_extra import normalized_model
+                    return normalized_model(row)
                 if brand == 'Non identificato':
                     return 'Modello ' + model
                 return brand + ' ' + model
