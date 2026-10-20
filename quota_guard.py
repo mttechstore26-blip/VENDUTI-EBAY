@@ -93,7 +93,8 @@ for category_id, category_name, min_price in jobs:
     env.pop("EBAY_ITEM_LOCATION", None)
     if category_id in ("20667", "38250", "139971", "111422", "175672"):
         env["EBAY_CONDITION_ID"] = "3000"
-    if category_id in ("111422", "175672"):
+    if category_id in ("63", "111422", "175672"):
+        # For ebay.it, domestic restricts item location to Italy.
         env["EBAY_ITEM_LOCATION"] = "domestic"
     if category_id == "175672":
         env["MAX_PRICE"] = "300"
