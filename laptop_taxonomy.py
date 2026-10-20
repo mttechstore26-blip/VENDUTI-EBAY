@@ -3,9 +3,9 @@ import re
 
 BRANDS=[
  ("Apple",r"\b(?:apple|mac\s*book|macbook)\b"),
- ("Lenovo",r"\b(?:lenovo|thinkpad|thinkbook|ideapad)\b"),
+ ("Lenovo",r"\b(?:lenovo|ibm\s*thinkpad|thinkpad|thinkbook|ideapad)\b"),
  ("HP",r"\b(?:hp|hewlett[\s-]*packard|elitebook|probook|zbook)\b"),
- ("Dell",r"\b(?:dell|latitude|inspiron)\b"),
+ ("Dell",r"\b(?:dell|latitude|inspiron|xps)\b"),
  ("ASUS",r"\b(?:asus|vivobook|zenbook|expertbook|rog)\b"),
  ("Acer",r"\b(?:acer|aspire|travelmate|extensa)\b"),
  ("Microsoft",r"\b(?:microsoft|surface)\b"),
@@ -13,7 +13,7 @@ BRANDS=[
  ("Samsung",r"\b(?:samsung|galaxy\s*book)\b"),
  ("Fujitsu",r"\b(?:fujitsu|lifebook)\b"),
  ("Toshiba/Dynabook",r"\b(?:toshiba|dynabook|satellite|portege|port[eé]g[eé])\b"),
- ("MSI",r"\bmsi\b"),
+ ("MSI",r"\b(?:msi|gf75|gp60)\b"),
  ("LG",r"\blg\s*gram\b"),("Chuwi",r"\bchuwi\b"),
  ("Sony",r"\b(?:sony|vaio)\b"),("Razer",r"\brazer\b"),
  ("Medion",r"\bmedion\b"),("Honor",r"\bhonor\b"),
@@ -36,6 +36,31 @@ FAMILIES={
 }
 # Families whose numeric identifiers do not need the family name repeated.
 NUMERIC={"HP":["250","255","14","15","17"],"Dell":["G3","G5","G7"]}
+
+def recover_explicit_laptop(title):
+ """Only recover manufacturer/model strings explicitly present in a listing."""
+ t=re.sub(r"\s+", " ", str(title or "").casefold())
+ rules=[
+  ("Dell","XPS",r"\b(?:dell\s*)?xps\s*(?:13|15|17)\s*(9\d{3})\b","Dell XPS "),
+  ("Dell","Inspiron",r"\binspiron\s*(?:1[345679])\s*(\d{4})\b","Dell Inspiron "),
+  ("MSI","GF",r"\b(?:msi\s*)?gf\s*(\d{2})\s*thin\s*(\d[a-z]{2})\b","MSI GF"),
+  ("Sony","VAIO",r"\b(?:sony\s*)?vaio\s*(sve\d{7}[a-z0-9]*|pcg[- ]?\d{5}[a-z])\b","Sony VAIO "),
+  ("Panasonic","Toughbook",r"\btoughbook\s*(cf[- ]?\d{2})\b","Panasonic Toughbook "),
+  ("Lenovo","ThinkPad",r"\b(?:ibm\s*)?thinkpad\s*(600e|t61)\b","Lenovo ThinkPad "),
+  ("Acer","Aspire",r"\b(?:aspire\s*)?(vn7[- ]?\d{3}[a-z]|vx5[- ]?\d{3}[a-z])\b","Acer Aspire "),
+  ("Chuwi","UBook",r"\b(?:chuwi\s*)?ubook\s*(13\s*xpro)\b","Chuwi UBook "),
+  ("Samsung","Notebook",r"\b(?:samsung\s*)?(np\d{3}[a-z0-9]{2,})\b","Samsung "),
+  ("ASUS","Notebook",r"\b(?:asus\s*)?(a53s|k56cb|k54c)\b","ASUS "),
+  ("MSI","GP",r"\b(?:msi\s*)?(gp60)\b","MSI "),
+ ]
+ for brand,family,pattern,prefix in rules:
+  m=re.search(pattern,t)
+  if m:
+   suffix=" ".join(g.upper().replace(" ","").replace("-","") for g in m.groups() if g)
+   if brand=="MSI" and family=="GF": suffix=m.group(1)+" Thin "+m.group(2).upper()
+   return brand,family,prefix+suffix
+ return None
+
 def classify_laptop(title):
  t=re.sub(r"[\u2010-\u2015_]+"," ",str(title or "").casefold())
  t=re.sub(r"\s+"," ",t)
@@ -46,13 +71,18 @@ def classify_laptop(title):
   from apple_laptop_taxonomy import classify_apple_laptop
   b,f,m,status=classify_apple_laptop(title)
   return b,f,m,status
- for candidate in FAMILIES.get(brand,[]):
+ recovered=recover_explicit_laptop(title)
+ if recovered:
+  brand,family,model=recovered
+ for candidate in ([] if recovered else FAMILIES.get(brand, [])):
   if re.search(r"(?<!\w)"+re.escape(candidate).replace(r"\ ",r"\s*")+r"(?!\w)",t,re.I):
    family=candidate
    break
  if family=="Portatile non identificato" and brand!="Marchio non identificato":
   family=brand+" serie non identificata"
- if brand=="Lenovo":
+ if recovered:
+  pass
+ elif brand=="Lenovo":
   # T490s, L590, X1 Carbon, E14, T14 Gen 1; generic IdeaPad 3-15IML05.
   m=re.search(r"\b(?:thinkpad\s*)?(t\d{3,4}s?|x\d{3,4}s?|l\d{2,4}|e\d{2,4}|p\d{2,4}|x1\s*carbon|x1\s*yoga)\b",t)
   if m:
