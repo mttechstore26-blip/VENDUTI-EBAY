@@ -91,6 +91,36 @@ with st.sidebar:
     section = st.radio('Sezione', ['📦 Annunci venduti', '🏷️ Categorie'])
     category_opt = st.selectbox('Categoria', ['Tutte le categorie'] + list(names), format_func=lambda k: names.get(k, k))
     selected_category = None if category_opt == 'Tutte le categorie' else category_opt
+    if selected_category is not None:
+        # The scheduler runs all categories in a six-hour cycle. Use insertion
+        # timestamps, not ended_at (the original sale date), for NEW items.
+        # This also works with historical runs which have no category_id field.
+        latest_cycle = fetch("""
+            SELECT MAX(ran_at) AS last_run
+            FROM runs WHERE status = 'ok'
+        """)
+        if not latest_cycle.empty and pd.notna(latest_cycle.iloc[0]['last_run']):
+            last_run = pd.to_datetime(latest_cycle.iloc[0]['last_run'], utc=True)
+            cycle_start = last_run.floor('6h')
+            cycle_end = last_run + pd.Timedelta(seconds=1)
+            new_sales = fetch("""
+                SELECT COUNT(*) AS new_count FROM sales
+                WHERE category_id = ?
+                  AND first_seen >= ? AND first_seen < ?
+            """, (selected_category, cycle_start.isoformat(), cycle_end.isoformat()))
+            count = int(new_sales.iloc[0]['new_count'])
+            local_time = last_run.tz_convert('Europe/Rome')
+            st.markdown(
+                f'<div style="background:#ffffff;border:1px solid #dbe4ef;'
+                f'border-radius:12px;padding:10px 12px;margin:2px 0 6px 0;">'
+                f'<div style="font-size:13px;color:#64748b;">🔄 Ultima raccolta · '
+                f'{local_time.strftime("%d/%m/%Y %H:%M")}</div>'
+                f'<div style="font-size:17px;font-weight:700;color:#15803d;">'
+                f'+{count} nuovi venduti</div></div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption('🔄 Nessuna raccolta disponibile.')
     st.divider()
     st.header('🔎 Filtri')
     search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
