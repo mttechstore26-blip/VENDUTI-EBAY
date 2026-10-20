@@ -92,6 +92,7 @@ with st.sidebar:
     category_opt = st.selectbox('Categoria', ['Tutte le categorie'] + list(names), format_func=lambda k: names.get(k, k))
     selected_category = None if category_opt == 'Tutte le categorie' else category_opt
     if selected_category is not None:
+        # Runs are not tagged by category: show a recent insertion window, not a per-category run.
         # The scheduler runs all categories in a six-hour cycle. Use insertion
         # timestamps, not ended_at (the original sale date), for NEW items.
         # This also works with historical runs which have no category_id field.
@@ -113,10 +114,10 @@ with st.sidebar:
             st.markdown(
                 f'<div style="background:#ffffff;border:1px solid #dbe4ef;'
                 f'border-radius:12px;padding:10px 12px;margin:2px 0 6px 0;">'
-                f'<div style="font-size:13px;color:#64748b;">🔄 Ultima raccolta · '
+                f'<div style="font-size:13px;color:#64748b;">🔄 Ultimo controllo API globale · '
                 f'{local_time.strftime("%d/%m/%Y %H:%M")}</div>'
                 f'<div style="font-size:17px;font-weight:700;color:#15803d;">'
-                f'+{count} nuovi venduti</div></div>',
+                f'+{count} nuovi venduti nel ciclo recente (stima)</div></div>',
                 unsafe_allow_html=True,
             )
         else:
@@ -145,7 +146,7 @@ if selected_category is not None:
 if search.strip():
     # All words must occur, in any order. Accept common title variants.
     import re
-    words = [w for w in re.split(r"[,;\\s]+", search.casefold().strip()) if w]
+    words = [w for w in re.split(r"[,;\s]+", search.casefold().strip()) if w]
     for word in words:
         variants = [word]
         if word in ("mexico", "messico", "méxico"):
@@ -187,11 +188,13 @@ if section == '🏷️ Categorie':
     st.subheader('🎯 Esplora una categoria')
     st.caption('Radar famiglie dei venduti eBay · stesso flusso di Venduti Subito')
     @st.cache_data(ttl=60, show_spinner=False)
-    def taxonomy_data():
+    def taxonomy_data(category_filter=None):
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
                          s.title, s.sold_price, s.ended_at, s.url, s.image, s.item_location
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
                          WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672')""")
+        if category_filter is not None:
+            raw = raw[raw['category_id'].astype(str) == str(category_filter)].copy()
         if raw.empty:
             return raw
         parsed = []
@@ -228,20 +231,33 @@ if section == '🏷️ Categorie':
             raw.loc[repeated,'Famiglia / Serie'] = promoted
         return raw
 
-    taxonomy = taxonomy_data()
-    if selected_category is not None and not taxonomy.empty:
-        taxonomy = taxonomy[taxonomy['category_id'].astype(str) == str(selected_category)]
+    taxonomy = taxonomy_data(selected_category)
     if taxonomy.empty:
         st.info('Nessun venduto disponibile per questa categoria.')
     else:
         categories = sorted(taxonomy['category_name'].dropna().unique().tolist())
-        cat_name = st.selectbox('Categoria',categories,key='radar_category')
+        cat_name = categories[0] if len(categories) == 1 else st.selectbox('Categoria da analizzare',categories,key='radar_category')
         subset = taxonomy[taxonomy['category_name']==cat_name]
         if str(subset['category_id'].iloc[0]) == '111422':
             apple_period = st.selectbox('Periodo vendite Apple', ['Tutti i periodi', '1–19 ottobre 2026'], key='apple_history_period')
             if apple_period == '1–19 ottobre 2026':
                 subset = subset[(subset['ended_at'].astype(str).str[:10] >= '2026-10-01') & (subset['ended_at'].astype(str).str[:10] <= '2026-10-19')].copy()
                 st.caption(f'📅 {len(subset)} venduti dal 1 al 19 ottobre 2026. Il filtro si applica a modelli, prezzi e CSV.')
+        # Classifiche coerenti con i filtri generali della sidebar.
+        if search.strip():
+            for word in words:
+                variants = ['mexico', 'messico', 'méxico'] if word in ('mexico','messico','méxico') else ([word, '19'+word] if word in ('86','78','82','90','94','98') else [word])
+                subset = subset[subset['title'].fillna('').str.casefold().apply(lambda t: any(v in t for v in variants))]
+        subset = subset[(subset['sold_price'] >= float(price_low)) & (subset['sold_price'] <= float(price_high))]
+        if period != 'Tutti':
+            days = {'Ultimi 7 giorni':7,'Ultimi 30 giorni':30,'Ultimi 90 giorni':90,'Ultimi 365 giorni':365}[period]
+            dates = pd.to_datetime(subset['ended_at'], errors='coerce', utc=True)
+            subset = subset[dates >= pd.Timestamp.now(tz='UTC').normalize() - pd.Timedelta(days=days)]
+        if condition != 'Tutte':
+            st.caption('Nota: il filtro Condizione è disponibile nella sezione Annunci; non applicato alle classifiche.')
+        if subset.empty:
+            st.info('Nessun prodotto corrisponde ai filtri della categoria.')
+            st.stop()
         # Export completo, indipendente dalla selezione delle famiglie.
         # Usa i dati SQLite gia raccolti: nessuna richiesta SoldComps.
         export_rows = subset.sort_values('ended_at', ascending=False).copy()
@@ -322,11 +338,14 @@ if section == '🏷️ Categorie':
         recent['_valid_date'] = sold_dates.notna().astype(int)
         family_stats=(recent.groupby(group_level,dropna=False)
             .agg(Venduti=('item_id','size'), V7=('_7d','sum'), V30=('_30d','sum'),
-                 Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'))
+                 Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'),
+                 Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
         display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Prezzo']=family_stats['Prezzo'].apply(eur)
+        family_stats['Prezzo minimo']=family_stats['Prezzo_min'].apply(eur)
+        family_stats['Prezzo massimo']=family_stats['Prezzo_max'].apply(eur)
         family_stats['Tempo vendita']='N/D'
         # A full comparable 60-day history is not available for newly backfilled categories.
         # Earliest record alone does not prove continuous coverage, so label the comparison indicative.
@@ -352,7 +371,7 @@ if section == '🏷️ Categorie':
         ranking_col={'Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
-        family_stats=family_stats[[display_group,'Venduti','Venduti 7 gg','Venduti 30 gg','Trend 30 gg','Prezzo','Tempo vendita']]
+        family_stats=family_stats[[display_group,'Venduti','Venduti 7 gg','Venduti 30 gg','Trend 30 gg','Prezzo','Prezzo minimo','Prezzo massimo','Tempo vendita']]
 
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
@@ -409,7 +428,7 @@ if section == '🏷️ Categorie':
                 st.caption('Mediana giornaliera dei prezzi degli annunci archiviati nella selezione.')
             else:
                 st.info('Servono vendite in almeno due giorni diversi per mostrare un andamento dei prezzi.')
-        st.caption('Trend e velocità non sono stimati da dati insufficienti; una volta raccolta una serie storica adeguata potremo calcolarli.')
+        st.caption('Le classifiche descrivono solo le vendite archiviate; trend non disponibile senza storico confrontabile. I prezzi di offerte accettate potrebbero essere indicativi.')
 else:
     st.subheader('📦 Annunci venduti')
 if section != '🏷️ Categorie' and not count:
