@@ -44,7 +44,7 @@ def recover_explicit_laptop(title):
   ("Dell","XPS",r"\b(?:dell\s*)?xps\s*(?:13|15|17)\s*(9\d{3})\b","Dell XPS "),
   ("Dell","Inspiron",r"\binspiron\s*(?:1[345679])\s*(\d{4})\b","Dell Inspiron "),
   ("MSI","GF",r"\b(?:msi\s*)?gf\s*(\d{2})\s*thin\s*(\d[a-z]{2})\b","MSI GF"),
-  ("Sony","VAIO",r"\b(?:sony\s*)?vaio\s*(sve\d{7}[a-z0-9]*|pcg[- ]?\d{5}[a-z])\b","Sony VAIO "),
+  ("Sony","VAIO",r"\b(?:sony\s*)?vaio\s*(sve[0-9a-z]{6,}|pcg[- ]?\d{5}[a-z])\b","Sony VAIO "),
   ("Panasonic","Toughbook",r"\btoughbook\s*(cf[- ]?\d{2})\b","Panasonic Toughbook "),
   ("Lenovo","ThinkPad",r"\b(?:ibm\s*)?thinkpad\s*(600e|t61)\b","Lenovo ThinkPad "),
   ("Acer","Aspire",r"\b(?:aspire\s*)?(vn7[- ]?\d{3}[a-z]|vx5[- ]?\d{3}[a-z])\b","Acer Aspire "),
