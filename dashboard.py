@@ -215,7 +215,9 @@ if section == '🏷️ Categorie':
         # Promote repeated identifiable models to their own clickable family.
         # Keep the source family as a grouping key: comic issue 1 in one series
         # must never be mixed with issue 1 in another series.
-        valid = (~raw['Modello / Edizione'].str.contains('non identificat',case=False,na=True)
+        valid = (~raw['Modello / Edizione'].str.contains(
+                    'non identificat|da identificare|non specificat|variante da verificare',
+                    case=False, na=True, regex=True)
                  & raw['Modello / Edizione'].notna())
         counts = raw.loc[valid].groupby(
             ['category_id','Famiglia / Serie','Modello / Edizione'],dropna=False
