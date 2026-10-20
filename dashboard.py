@@ -336,18 +336,13 @@ if section == '🏷️ Categorie':
                     return 'Set incompleti / pezzi mancanti'
                 return 'Set LEGO (completezza da verificare)'
             subset['Tipo costruzione'] = subset.apply(lego_type, axis=1)
-            kinds = ['Set LEGO (completezza da verificare)','Set incompleti / pezzi mancanti','Minifigure / personaggi',
-                     'Lotti / pezzi misti','Accessori / scatole / ricambi',
-                     'MOC / compatibili','Altre costruzioni']
+            kinds = ['Set LEGO (completezza da verificare)', 'Set incompleti / pezzi mancanti',
+                     'Minifigure / personaggi', 'Lotti / pezzi misti',
+                     'Accessori / scatole / ricambi', 'MOC / compatibili', 'Altre costruzioni']
             counts_by_type = subset['Tipo costruzione'].value_counts()
             st.caption('📦 ' + ' · '.join(f'{x}: {int(counts_by_type.get(x,0))}' for x in kinds))
-            kind_choice = st.selectbox('Tipo costruzione', ['Set LEGO (completezza da verificare)','Tutti'] +
-                                       [x for x in kinds if x != 'Set LEGO (completezza da verificare)'])
-            if kind_choice != 'Tutti':
-                subset = subset[subset['Tipo costruzione'] == kind_choice].copy()
-            if subset.empty:
-                st.info('Nessun annuncio di questo tipo nei filtri selezionati.')
-                st.stop()
+            kind_choice = st.selectbox('Tipologia LEGO', ['Tutti'] + kinds,
+                help='Il codice set viene riconosciuto indipendentemente dallo stato e dalla tipologia.')
             def lego_model(row):
                 if str(row['Brand / Editore']) != 'LEGO':
                     return str(row['Famiglia / Serie'])
@@ -370,6 +365,33 @@ if section == '🏷️ Categorie':
                     return 'LEGO — set non identificato'
                 return 'LEGO ' + number
             subset['Codice set LEGO'] = subset.apply(lego_model, axis=1)
+            # Distinguish condition separately from set identity and type.
+            def lego_condition(row):
+                title = str(row['title'] or '').casefold()
+                kind = str(row['Tipo costruzione'])
+                if kind == 'Set incompleti / pezzi mancanti':
+                    return 'Incompleto / pezzi mancanti'
+                if kind in ('Minifigure / personaggi', 'Lotti / pezzi misti',
+                            'Accessori / scatole / ricambi', 'MOC / compatibili', 'Altre costruzioni'):
+                    return 'Non applicabile / altro tipo'
+                if re.search(r'\b(?:sigillat[oaie]|sealed|misb|new\s+in\s+box|nuovo\s+sigillato)\b', title):
+                    return 'Nuovo / sigillato dichiarato'
+                if re.search(r'\b(?:complet[oaie]|100%\s*complete|all\s+pieces|tutti\s+i\s+pezzi)\b', title):
+                    return 'Usato completo dichiarato'
+                return 'Completezza non verificabile'
+            subset['Stato LEGO'] = subset.apply(lego_condition, axis=1)
+            condition_choices = ['Tutti', 'Nuovo / sigillato dichiarato',
+                'Usato completo dichiarato', 'Incompleto / pezzi mancanti',
+                'Completezza non verificabile', 'Non applicabile / altro tipo']
+            condition_choice = st.selectbox('Stato del set LEGO', condition_choices,
+                help='Stato desunto esclusivamente dal titolo, non verificato fisicamente.')
+            if kind_choice != 'Tutti':
+                subset = subset[subset['Tipo costruzione'] == kind_choice].copy()
+            if condition_choice != 'Tutti':
+                subset = subset[subset['Stato LEGO'] == condition_choice].copy()
+            if subset.empty:
+                st.info('Nessun annuncio corrisponde ai filtri LEGO selezionati.')
+                st.stop()
 
         st.subheader('🧩 Brand / famiglie / modelli')
 
