@@ -480,8 +480,8 @@ if section == '🏷️ Categorie':
                 Vendite_note=('_seller','size')).reset_index()
             top_seller = (seller_rows.groupby([group_level,'_seller'],dropna=False)
                 .size().groupby(level=0).max().rename('Top_seller').reset_index())
-            family_stats = family_stats.merge(known_stats,on=group_level,how='left')
-            family_stats = family_stats.merge(top_seller,on=group_level,how='left')
+            family_stats = family_stats.merge(known_stats,left_on=display_group,right_on=group_level,how='left')
+            family_stats = family_stats.merge(top_seller,left_on=display_group,right_on=group_level,how='left')
             for col in ('Venditori','Vendite_note','Top_seller'):
                 family_stats[col] = family_stats[col].fillna(0).astype(int)
             family_stats['Ripetute'] = (family_stats['Vendite_note'] - family_stats['Venditori']).clip(lower=0)
