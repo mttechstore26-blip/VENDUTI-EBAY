@@ -45,6 +45,13 @@ def classify_apple_laptop(title):
     has_apple = bool(re.search(r'\b(?:apple|macbook|mac book|a1\d{3}|a2\d{3}|a3\d{3})\b', t))
     if not has_apple:
         return "Altro marchio", "Fuori categoria Apple", "Non Apple / verificare", "Non Apple / verificare"
+    # Older iBook models are distinct from MacBooks; use only explicit chassis codes.
+    ibook = re.search(r"\bibook\s*(g3|g4)\b", t)
+    if ibook:
+        code = re.search(r"\b(m2453)\b", t)
+        label = "Apple iBook " + ibook.group(1).upper() + (" " + code.group(1).upper() if code else "")
+        condition = "⚠️ Lotto multiplo / da verificare" if re.search(r"\blotto\s*(?:di\s*)?[2-9]\d*\b", t) else "Portatile presumibilmente completo"
+        return "Apple", "iBook", label, condition
     family = ("MacBook Neo" if re.search(r'\bmacbook\s*neo\b', t) else
               "MacBook Air" if re.search(r'\bmac\s*book\s*air\b|\bmacbook\s*air\b', t) else
               "MacBook Pro" if re.search(r'\bmac\s*book\s*pro\b|\bmacbook\s*pro\b', t) else
@@ -108,4 +115,6 @@ def classify_apple_laptop(title):
     if re.search(danger,t): status="⚠️ Blocco / guasto / ricambio: verificare"
     elif re.search(r'\b(?:da\s*testare|leggere\s*descrizione|difetto|problema|battery\s*service|batteria\s*da\s*sostituire)\b',t): status="⚠️ Condizioni da verificare"
     else: status="Portatile presumibilmente completo"
+    if re.search(r"\b(?:lotto\s*(?:di\s*)?[2-9]\d*\s*(?:macbook|notebook|laptop|pc)|lot\s+of\s+[2-9]\d*\s*(?:macbooks|laptops))\b", t):
+        status="⚠️ Lotto multiplo / non confrontabile con singolo portatile"
     return "Apple",family,model,status
