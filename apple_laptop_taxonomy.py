@@ -74,8 +74,19 @@ def classify_apple_laptop(title):
     # Canonical commercial groups: do not split on optional year or size.
     # Keep ambiguous family/chip identities distinct rather than guessing.
     if family == "MacBook Air":
+        # Distinguish Intel chassis and disclosed year without inferring an unknown year.
+        air_code = re.search(r'\b(a(?:1237|1304|1369|1370|1465|1466|1932|2179|2337|2681|3113|3240))\b', t)
+        if air_code and chip == "Chip non specificato" and air_code.group(1) not in ("a2337", "a2681", "a3113", "a3240"):
+            chip = "Intel"
         model = "MacBook Air " + chip
-        if inches == '15"' and chip in ("M2", "M3", "M4", "M5"):
+        if chip == "Intel":
+            if air_code:
+                model += " " + air_code.group(1).upper()
+            elif yr:
+                model += " (" + yr + ")"
+            elif inches:
+                model += " " + inches + " — anno non specificato"
+        elif inches == '15"' and chip in ("M2", "M3", "M4", "M5"):
             model += ' 15"'
     elif family == "MacBook Pro" and chip == "Intel":
         model = intel_pro_model(t, inches, yr)
