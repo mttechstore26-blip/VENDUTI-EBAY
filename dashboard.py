@@ -278,6 +278,37 @@ if section == '🏷️ Categorie':
             key=f"download_category_{export_id}",
             help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
         )
+        if export_id == '175672':
+            # Exclusive, auditable groups: lots and defective units must not distort
+            # single working-laptop median prices or demand rankings.
+            subset = subset.copy()
+            status_text = subset['Stato prodotto'].fillna('').astype(str)
+            model_text = subset['Modello / Edizione'].fillna('').astype(str)
+            unknown = model_text.str.contains(
+                r'da identificare|non identificat|non specificat|da verificare|variante non specificata|anno non specificato',
+                case=False, regex=True)
+            multiple = status_text.str.contains('Lotto multiplo',case=False,regex=False)
+            defective = status_text.str.contains('guast|ricamb|blocc|difett|da verificare|condizioni',
+                                                case=False,regex=True)
+            subset['Segmento portatile'] = 'Singolo completo (presunto)'
+            subset.loc[unknown, 'Segmento portatile'] = 'Modello non identificato'
+            subset.loc[defective, 'Segmento portatile'] = 'Guasto / ricambi / da verificare'
+            subset.loc[multiple, 'Segmento portatile'] = 'Lotto multiplo'
+            segment_order = ['Singolo completo (presunto)', 'Guasto / ricambi / da verificare',
+                             'Lotto multiplo', 'Modello non identificato']
+            segment_counts = subset['Segmento portatile'].value_counts()
+            st.caption('📊 Segmentazione dei portatili archiviati (titoli indicativi, non verifiche fisiche): ' +
+                       ' · '.join(f'{name}: {int(segment_counts.get(name,0))}' for name in segment_order))
+            segment_choice = st.selectbox(
+                'Classifica portatili', ['Singolo completo (presunto)', 'Tutti'] +
+                [name for name in segment_order if name != 'Singolo completo (presunto)'],
+                help='La classifica predefinita esclude lotti, guasti e modelli non identificati; '
+                     'seleziona Tutti per includere ogni annuncio.')
+            if segment_choice != 'Tutti':
+                subset = subset[subset['Segmento portatile'] == segment_choice].copy()
+            if subset.empty:
+                st.info('Nessun portatile in questo segmento con i filtri selezionati.')
+                st.stop()
         if export_id in ('20667','38250','139971','111422','175672'):
             state_choice = st.selectbox(
                 'Tipo prodotto', ['Tutti'] + sorted(subset['Stato prodotto'].dropna().unique().tolist()),
