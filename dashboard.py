@@ -190,7 +190,7 @@ if section == '🏷️ Categorie':
     @st.cache_data(ttl=60, show_spinner=False)
     def taxonomy_data(category_filter=None):
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
-                         s.title, s.sold_price, s.ended_at, s.url, s.image, s.item_location
+                         s.title, s.sold_price, s.ended_at, s.url, s.image, s.item_location, s.seller
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
                          WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672')""")
         if category_filter is not None:
@@ -448,6 +448,8 @@ if section == '🏷️ Categorie':
         recent['_30d'] = ((sold_dates >= end_day - pd.Timedelta(days=29)) & (sold_dates < end_day + pd.Timedelta(days=1))).astype(int)
         recent['_prev30d'] = ((sold_dates >= end_day - pd.Timedelta(days=59)) & (sold_dates < end_day - pd.Timedelta(days=29))).astype(int)
         recent['_valid_date'] = sold_dates.notna().astype(int)
+        recent['_seller'] = recent['seller'].fillna('').astype(str).str.strip().str.casefold()
+        recent.loc[recent['_seller'].isin(['', 'none', 'nan', 'null']), '_seller'] = pd.NA
         family_stats=(recent.groupby(group_level,dropna=False)
             .agg(Venduti=('item_id','size'), V7=('_7d','sum'), V30=('_30d','sum'),
                  Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'),
@@ -471,6 +473,22 @@ if section == '🏷️ Categorie':
             delta=(current-previous)*100.0/previous
             return ('+' if delta > 0 else '') + f'{delta:.1f}%'
         family_stats['Trend 30 gg']=family_stats.apply(trend_label,axis=1)
+        if export_id == '183446':
+            seller_rows = recent.dropna(subset=['_seller'])
+            known_stats = seller_rows.groupby(group_level, dropna=False).agg(
+                Venditori=('_seller','nunique'),
+                Vendite_note=('_seller','size')).reset_index()
+            top_seller = (seller_rows.groupby([group_level,'_seller'],dropna=False)
+                .size().groupby(level=0).max().rename('Top_seller').reset_index())
+            family_stats = family_stats.merge(known_stats,on=group_level,how='left')
+            family_stats = family_stats.merge(top_seller,on=group_level,how='left')
+            for col in ('Venditori','Vendite_note','Top_seller'):
+                family_stats[col] = family_stats[col].fillna(0).astype(int)
+            family_stats['Ripetute'] = (family_stats['Vendite_note'] - family_stats['Venditori']).clip(lower=0)
+            family_stats['Concentrazione'] = family_stats.apply(
+                lambda row: f"{100*row['Top_seller']/row['Vendite_note']:.0f}%"
+                if row['Vendite_note'] else 'N/D',axis=1)
+
 
         leaders=family_stats[family_stats['V30']>=5].sort_values(['V30','V7','Venduti'],ascending=False)
         if not leaders.empty:
@@ -483,7 +501,12 @@ if section == '🏷️ Categorie':
         ranking_col={'Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
-        family_stats=family_stats[[display_group,'Venduti','Venduti 7 gg','Venduti 30 gg','Trend 30 gg','Prezzo','Prezzo minimo','Prezzo massimo','Tempo vendita']]
+        cols = [display_group,'Venduti','Venduti 7 gg','Venduti 30 gg']
+        if export_id == '183446':
+            cols += ['Venditori','Ripetute','Concentrazione']
+            st.caption('👥 Venditori = account distinti identificabili. Ripetute = vendite oltre la prima per modello e venditore (non necessariamente repliche). Concentrazione = quota del venditore principale tra le vendite con venditore noto.')
+        cols += ['Trend 30 gg','Prezzo','Prezzo minimo','Prezzo massimo','Tempo vendita']
+        family_stats=family_stats[cols]
 
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
