@@ -52,6 +52,10 @@ def recover_explicit_laptop(title):
   ("Samsung","Notebook",r"\b(?:samsung\s*)?(np\d{3}[a-z0-9]{2,})\b","Samsung "),
   ("ASUS","Notebook",r"\b(?:asus\s*)?(a53s|k56cb|k54c)\b","ASUS "),
   ("MSI","GP",r"\b(?:msi\s*)?(gp60)\b","MSI "),
+  ("Dell","Vostro",r"\b(?:dell\s*)?vostro\s*(?:15\s*)?(3500)\b","Dell Vostro "),
+  ("HP","HP 250",r"\b(?:hp\s*)?250\s*(g7)\b","HP 250 "),
+  ("HP","G72",r"\bhp\s*(g72)\b","HP "),
+  ("Medion","Akoya",r"\b(?:medion\s*)?akoya\s*(e15303)\b","Medion Akoya "),
  ]
  for brand,family,pattern,prefix in rules:
   m=re.search(pattern,t)
@@ -211,4 +215,6 @@ def classify_laptop(title):
  elif re.search(r"\b(?:da\s*testare|leggi\s*descrizione|leggere\s*descrizione|difett[oi]|batteria\s*ko|battery\s*service|batteria\s*esausta|schermo\s*macchiato)\b",t):
   status="⚠️ Difetto / condizioni da verificare"
  else:status="Portatile presumibilmente completo"
+ if re.search(r"\b(?:lotto\s*(?:di\s*)?[2-9]\d*\s*(?:notebook|laptop|pc|computer)|[2-9]\d*\s*(?:notebook|laptop|pc|computer)|lot\s+of\s+[2-9]\d*\s*(?:laptops|notebooks))\b",t):
+  status="⚠️ Lotto multiplo / non confrontabile con singolo portatile"
  return brand,family,model,status
