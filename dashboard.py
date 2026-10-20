@@ -332,9 +332,11 @@ if section == '🏷️ Categorie':
                     return 'Lotti / pezzi misti'
                 if re.search(r'\b(?:moc|custom\s+build|compatibile|compatible\s+with\s+lego|non\s+lego)\b', title):
                     return 'MOC / compatibili'
+                if re.search(r'\b(?:incomplet[oaie]|pezzi\s+mancanti|missing\s+pieces|non\s+completo|without\s+pieces)\b', title):
+                    return 'Set incompleti / pezzi mancanti'
                 return 'Set LEGO (completezza da verificare)'
             subset['Tipo costruzione'] = subset.apply(lego_type, axis=1)
-            kinds = ['Set LEGO (completezza da verificare)','Minifigure / personaggi',
+            kinds = ['Set LEGO (completezza da verificare)','Set incompleti / pezzi mancanti','Minifigure / personaggi',
                      'Lotti / pezzi misti','Accessori / scatole / ricambi',
                      'MOC / compatibili','Altre costruzioni']
             counts_by_type = subset['Tipo costruzione'].value_counts()
@@ -349,14 +351,22 @@ if section == '🏷️ Categorie':
             def lego_model(row):
                 if str(row['Brand / Editore']) != 'LEGO':
                     return str(row['Famiglia / Serie'])
-                code = str(row['Modello / Edizione'] or '')
                 title = str(row['title'] or '').casefold()
-                # Require a LEGO/set context to avoid prices, dates or random numbers.
-                match = re.search(r'\b(?:lego|set|nr\.?|n\.?|codice)\s*(?:n\.?|no\.?|#|:|-)?\s*(\d{4,6})\b', title)
-                if not match and re.search(r'\blego\b', title):
-                    match = re.search(r'(?<!\d)(\d{5})(?!\d)', title)
-                number = match.group(1) if match else (code if re.fullmatch(r'\d{4,6}',code) and code in title else '')
-                if not number:
+                code = str(row['Modello / Edizione'] or '')
+                # Explicit LEGO/set labels have priority, regardless of position.
+                matches = re.findall(r'(?<!\d)(\d{4,6})(?!\d)', title)
+                def plausible(value):
+                    number = int(value)
+                    return not (1900 <= number <= 2099 or number in (2023, 2024, 2025, 2026))
+                candidates = [value for value in matches if plausible(value)]
+                explicit = re.search(r'\b(?:lego|set|set\s+n[°o.]?|nr\.?|codice|art\.?)\s*(?:n[°o.]?|#|:|-)?\s*(\d{4,6})\b', title)
+                if explicit and plausible(explicit.group(1)):
+                    number = explicit.group(1)
+                elif len(set(candidates)) == 1 and re.search(r'\blego\b', title):
+                    number = candidates[0]
+                elif re.fullmatch(r'\d{4,6}',code) and code in candidates and len(set(candidates)) == 1:
+                    number = code
+                else:
                     return 'LEGO — set non identificato'
                 return 'LEGO ' + number
             subset['Codice set LEGO'] = subset.apply(lego_model, axis=1)
