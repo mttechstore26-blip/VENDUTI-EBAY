@@ -316,6 +316,51 @@ if section == '🏷️ Categorie':
             if state_choice != 'Tutti':
                 subset = subset[subset['Stato prodotto'] == state_choice]
 
+        if export_id == '183446':
+            import re
+            subset = subset.copy()
+            def lego_type(row):
+                title = str(row['title'] or '').casefold()
+                brand = str(row['Brand / Editore'] or '')
+                if brand != 'LEGO':
+                    return 'Altre costruzioni'
+                if re.search(r'\b(?:solo\s+(?:scatola|box|istruzioni|manuale)|empty\s+box|box\s+only|instructions?\s+only|manual\s+only|ricambi|spare\s+parts|replacement\s+parts)\b', title):
+                    return 'Accessori / scatole / ricambi'
+                if re.search(r'\b(?:minifig(?:ure)?s?|personaggi\s+lego|cmf|lego\s+figure)\b', title):
+                    return 'Minifigure / personaggi'
+                if re.search(r'\b(?:lotto|lotti|lot\s+of|bulk\s+lego|sfuso|mixed\s+bricks|misti)\b', title):
+                    return 'Lotti / pezzi misti'
+                if re.search(r'\b(?:moc|custom\s+build|compatibile|compatible\s+with\s+lego|non\s+lego)\b', title):
+                    return 'MOC / compatibili'
+                return 'Set LEGO (completezza da verificare)'
+            subset['Tipo costruzione'] = subset.apply(lego_type, axis=1)
+            kinds = ['Set LEGO (completezza da verificare)','Minifigure / personaggi',
+                     'Lotti / pezzi misti','Accessori / scatole / ricambi',
+                     'MOC / compatibili','Altre costruzioni']
+            counts_by_type = subset['Tipo costruzione'].value_counts()
+            st.caption('📦 ' + ' · '.join(f'{x}: {int(counts_by_type.get(x,0))}' for x in kinds))
+            kind_choice = st.selectbox('Tipo costruzione', ['Set LEGO (completezza da verificare)','Tutti'] +
+                                       [x for x in kinds if x != 'Set LEGO (completezza da verificare)'])
+            if kind_choice != 'Tutti':
+                subset = subset[subset['Tipo costruzione'] == kind_choice].copy()
+            if subset.empty:
+                st.info('Nessun annuncio di questo tipo nei filtri selezionati.')
+                st.stop()
+            def lego_model(row):
+                if str(row['Brand / Editore']) != 'LEGO':
+                    return str(row['Famiglia / Serie'])
+                code = str(row['Modello / Edizione'] or '')
+                title = str(row['title'] or '').casefold()
+                # Require a LEGO/set context to avoid prices, dates or random numbers.
+                match = re.search(r'\b(?:lego|set|nr\.?|n\.?|codice)\s*(?:n\.?|no\.?|#|:|-)?\s*(\d{4,6})\b', title)
+                if not match and re.search(r'\blego\b', title):
+                    match = re.search(r'(?<!\d)(\d{5})(?!\d)', title)
+                number = match.group(1) if match else (code if re.fullmatch(r'\d{4,6}',code) and code in title else '')
+                if not number:
+                    return 'LEGO — set non identificato'
+                return 'LEGO ' + number
+            subset['Codice set LEGO'] = subset.apply(lego_model, axis=1)
+
         st.subheader('🧩 Brand / famiglie / modelli')
 
         if export_id in ('20667','38250','139971','111422','175672'):
@@ -357,6 +402,8 @@ if section == '🏷️ Categorie':
             subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971','111422','175672') else subset.apply(modello_commerciale, axis=1))
             group_level = 'Modello commerciale'
 
+        elif export_id == '183446':
+            group_level = 'Codice set LEGO'
         else:
             group_level=st.radio('Raggruppa per', ['Famiglia / Serie','Brand / Editore','Modello / Edizione'],horizontal=True)
         # Demand ranking based on actual sale end dates, independent of initial listing dates.
@@ -374,7 +421,7 @@ if section == '🏷️ Categorie':
                  Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'),
                  Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
-        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672') else 'Famiglia'
+        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Prezzo']=family_stats['Prezzo'].apply(eur)
         family_stats['Prezzo minimo']=family_stats['Prezzo_min'].apply(eur)
@@ -387,7 +434,7 @@ if section == '🏷️ Categorie':
         def trend_label(row):
             previous=int(row['Prev30'])
             current=int(row['V30'])
-            if not enough_history or previous == 0:
+            if export_id == '183446' or not enough_history or previous == 0:
                 return 'N/D'
             delta=(current-previous)*100.0/previous
             return ('+' if delta > 0 else '') + f'{delta:.1f}%'
