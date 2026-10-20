@@ -250,6 +250,27 @@ def classify(category_id, title):
         return brand, family, model
     if str(category_id) == "63":
         series = [
+            ("Amazing Spider-Man", r"\bamazing\s+spider[ -]?man\b|\b(?:asm)\s*#?\s*\d"),
+            ("Absolute Batman", r"\babsolute\s+batman\b"),
+            ("Detective Comics", r"\bdetective\s+comics\b"),
+            ("Action Comics", r"\baction\s+comics\b"),
+            ("Uncanny X-Men", r"\buncanny\s+x[ -]?men\b"),
+            ("Ultimate Spider-Man", r"\bultimate\s+spider[ -]?man\b"),
+            ("Dylan Dog Speciale", r"\bdylan\s+dog\s+speciale\b"),
+            ("Tex Gigante", r"\btex\s+gigante\b"),
+            ("Tex Willer", r"\btex\s+willer\b"),
+            ("Topolino Libretto", r"\btopolino\b.*\blibretto\b"),
+            ("Diabolik Originale", r"\bdiabolik\b.*\boriginale\b"),
+            ("One Piece", r"\bone\s+piece\b"),
+            ("Dragon Ball", r"\bdragon\s+ball\b"),
+            ("Naruto", r"\bnaruto\b"),
+            ("Dragonero", r"\bdragonero\b"),
+            ("Nathan Never", r"\bnathan\s+never\b"),
+            ("Julia", r"\bjulia\b.*(?:bonelli|fumett|n\.?\s*\d)"),
+            ("Lupo Alberto", r"\blupo\s+alberto\b"),
+            ("Corto Maltese", r"\bcorto\s+maltese\b"),
+            ("Asterix", r"\basterix\b"),
+            ("Lucky Luke", r"\blucky\s+luke\b"),
             ("Dylan Dog",r"\bdylan\s*dog\b"),
             ("Tex",r"\btex\b|tex willer"),
             ("Diabolik",r"\bdiabolik\b"),
@@ -352,9 +373,9 @@ def classify(category_id, title):
             ("Weird Western Tales", r"weird western tales"),
             ("Haunted / Charlton", r"\bhaunted\b.*(?:charlton|sutton)"),
         ]
-        family = next((name for name, pattern in more_series if re.search(pattern, t)), None)
+        family = next((name for name, pattern in series if re.search(pattern, t)), None)
         if family is None:
-            family = next((name for name, pattern in series if re.search(pattern, t)), None)
+            family = next((name for name, pattern in more_series if re.search(pattern, t)), None)
         if family is None:
             other_types = [
                 ("Statue / busti / action figure", r"statua|statue|\bbusto\b|action figure|\bfigure\b"),
@@ -373,8 +394,39 @@ def classify(category_id, title):
             ("Astorina",r"\bastorina\b|diabolik"),
         ]
         brand = next((b for b,p in publishers if re.search(p,t)), "Editore non identificato")
-        issue = re.search(r"\b(?:n(?:umero|um)?\.?|#)\s*(\d{1,4})\b", t)
-        model = "N. " + issue.group(1) if issue else "Numero non identificato"
+        # The edition model combines explicit clues only: never infer publication
+        # year or issue number from unrelated prices, CGC grades, or seller IDs.
+        issue = re.search(
+            r"(?<!\w)(?:n(?:umero|um)?\.?|n°|nº|nr\.?|issue|#)\s*(\d{1,4})(?!\d)", t
+        )
+        if issue is None:
+            # Bare numbers are acceptable only directly after a known series
+            # name, not after "lotto", "cgc", "vol", or an ISBN.
+            label = re.search(
+                r"(?:amazing\s+spider[ -]?man|absolute\s+batman|detective\s+comics|"
+                r"action\s+comics|dylan\s+dog|tex\s+willer|topolino|diabolik|"
+                r"zagor|batman|spider[ -]?man|one\s+piece)\s+(\d{1,4})\b", t
+            )
+            issue = label
+        # Accept four-digit years only; don't confuse them with numbered issues.
+        year = re.search(r"(?<!\d)(?:19[3-9]\d|20[0-2]\d)(?!\d)", t)
+        details = []
+        if issue:
+            details.append("N. " + str(int(issue.group(1))))
+        if year:
+            details.append("Anno " + year.group(0))
+        editions = [
+            ("Prima stampa", r"\bprima\s+stampa\b|\bfirst\s+print(?:ing)?\b|\b1st\s+print\b"),
+            ("Ristampa", r"\bristampa\b|\breprint\b|\bsecond\s+print(?:ing)?\b|\b2nd\s+print\b"),
+            ("Variant cover", r"\bvariant\b|\bcover\s+[b-z]\b"),
+            ("Autografato", r"\bautografat[oaie]?\b|\bfirmat[oaie]?\b|\bsigned\b|\bsignature\b"),
+            ("CGC", r"\bcgc\b"),
+            ("CBCS", r"\bcbcs\b"),
+            ("Omnibus", r"\bomnibus\b"),
+            ("Lotto", r"\blotto\b|\blot\b|\bcollezione\b|\bblocco\b"),
+        ]
+        details.extend(label for label, pat in editions if re.search(pat, t))
+        model = " · ".join(details) if details else "Numero / anno non identificati"
         return brand, family, model
 
     if str(category_id) == "20667":
