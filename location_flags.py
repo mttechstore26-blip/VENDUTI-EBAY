@@ -29,9 +29,9 @@ COUNTRIES = [
 ]
 def flag_for_location(location):
     if location is None or str(location).strip().lower() in ("","none","nan","null"):
-        return "🌐","Località non disponibile"
+        return "🇮🇹","Italia (predefinita: località non disponibile)"
     location=str(location)
     for flag,country,pattern in COUNTRIES:
         if re.search(pattern,location,re.I):
             return flag, f"{country} · {location}"
-    return "🌐", f"Paese non identificato · {location}"
+    return "🇮🇹", f"Italia (predefinita: Paese non identificato) · {location}"
