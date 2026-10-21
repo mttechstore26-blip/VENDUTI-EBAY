@@ -53,7 +53,7 @@ categories = [
     ("20667", "Piccoli elettrodomestici per la cucina", "100"),
     ("38250", "Macchine da caffè", "100"),
     ("139971", "CONSOLE 400+", "400"),
-    ("111422", "PORTATILI APPLE 300+", "300"),
+    ("111422", "PORTATILI APPLE 150-300 🇮🇹", "150"),
     ("175672", "PORTATILI 150-300", "150"),
     ("80053", "Monitor usati Italia 100-300", "100"),
 ]
@@ -113,7 +113,7 @@ for category_id, category_name, min_price in jobs:
         env["EBAY_ITEM_LOCATION"] = "domestic"
     if category_id == "175672":
         env["MAX_PRICE"] = "300"
-    if category_id in ("38250", "80053"):
+    if category_id in ("38250", "80053", "111422"):
         env["MAX_PRICE"] = "300"
     result = subprocess.run([sys.executable, str(ROOT / "collector.py")],
                             cwd=ROOT, env=env, check=False)
