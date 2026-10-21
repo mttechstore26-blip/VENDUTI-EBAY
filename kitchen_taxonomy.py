@@ -32,12 +32,12 @@ def classify_kitchen(title):
         ("Saladmaster", r"saladmaster"), ("Magic Mill", r"magic mill"),
         ("VacMaster", r"vacmaster"), ("Nutrimill", r"nutrimill"),
         ("Shark", r"\bshark\b"), ("Crock-Pot", r"crock.?pot"),
-        ("Instant Pot", r"instant pot"), ("Saeco", r"\\bsaeco\\b"),
-        ("Krups", r"\\bkrups\\b"), ("Lavazza", r"\\blavazza\\b"),
-        ("Baratza", r"baratza"), ("Weston", r"\\bweston\\b"),
+        ("Instant Pot", r"instant pot"), ("Saeco", r"\bsaeco\b"),
+        ("Krups", r"\bkrups\b"), ("Lavazza", r"\blavazza\b"),
+        ("Baratza", r"baratza"), ("Weston", r"\bweston\b"),
         ("WonderMill", r"wondermill|whisper mill"), ("Yum Asia", r"yumasia"),
-        ("Tchibo", r"tchibo"), ("AEG", r"\\baeg\\b"),
-        ("Russell Hobbs", r"russell hobbs"), ("GE", r"\\bge\\b"),
+        ("Tchibo", r"tchibo"), ("AEG", r"\baeg\b"),
+        ("Russell Hobbs", r"russell hobbs"), 
     ]
     brand = next((b for b, p in brands if match(p, t)), "Non identificato")
 
@@ -96,13 +96,13 @@ def classify_kitchen(title):
     # Require recognizable manufacturer prefixes, with boundary guards against
     # dimensions, prices, year and generic capacity/voltage numbers.
     extra_models = [
-        r"\\b(?:KM0\\d{2}|KM\\d{3,4}|SFCM[- ]?CR\\d{2}|ENV\\d{3}[A-Z]?|ES\\d{3}|SF\\d{3}|WM\\d{4}|KST\\d{4}[A-Z]*|BB[- ]?P(?:AC|DC)\\d{2}[A-Z]*|KLF\\d{2}|TSF\\d{2}[A-Z]*|AE\\d{4}|K[- ]?3500|KSM\\d{2,5}[A-Z]*|K5[- ]?A|BB[- ]?PDC20BA|BB[- ]?PAC20|K5SSWH|TPU\\d{5}|BB[- ]?PDC20|WB\\d{2}X\\d{4,6}|WP\\d{7}|KBGV\\w{2,8})\\b",
-        r"\\b(?:Professional 750|Professional 600|Cooking Chef Major|Luxe Caf[eé] Premier|Talea Giro|Encore ESP|Ode Brew|Lagom P64|Virtuoso Plus|Barista Express|Barista Touch)\\b",
+        r"\b(?:KM0\d{2}|KM\d{3,4}|SFCM[- ]?CR\d{2}|ENV\d{3}[A-Z]?|ES\d{3}|SF\d{3}|WM\d{4}|KST\d{4}[A-Z]*|BB[- ]?P(?:AC|DC)\d{2}[A-Z]*|KLF\d{2}|TSF\d{2}[A-Z]*|AE\d{4}|K[- ]?3500|KSM\d{2,5}[A-Z]*|K5[- ]?A|BB[- ]?PDC20BA|BB[- ]?PAC20|K5SSWH|TPU\d{5}|BB[- ]?PDC20|WB\d{2}X\d{4,6}|WP\d{7}|KBGV\w{2,8})\b",
+        r"\b(?:Professional 750|Professional 600|Cooking Chef Major|Luxe Caf[eé] Premier|Talea Giro|Encore ESP|Ode Brew|Lagom P64|Virtuoso Plus|Barista Express|Barista Touch)\b",
     ]
     for pat in extra_models:
         hit = re.search(pat, t, re.I)
         if hit:
-            model = re.sub(r"\\s+", " ", hit.group(0)).upper()
+            model = re.sub(r"\s+", " ", hit.group(0)).upper()
             break
 
     rules = [
