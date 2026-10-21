@@ -546,6 +546,10 @@ if section == '🏷️ Categorie':
             family_stats['Concentrazione'] = family_stats.apply(
                 lambda row: f"{100*row['Top_seller']/row['Vendite_note']:.0f}%"
                 if row['Vendite_note'] else 'N/D',axis=1)
+            # A missing seller is unknown, never a zero count.
+            unknown_sellers = family_stats['Vendite_note'].eq(0)
+            family_stats.loc[unknown_sellers, ['Venditori', 'Ripetute']] = 'N/D'
+
 
 
         leaders=family_stats[family_stats['V30']>=5].sort_values(['V30','V7','Venduti'],ascending=False)
