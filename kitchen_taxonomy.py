@@ -47,7 +47,11 @@ def classify_kitchen(title):
     incomplete = r"\b(?:senza\s+(?:ciotola|caraffa|coperchio|motore|accessori)|missing\s+(?:bowl|jar|lid|motor|parts)|incomplet[oa]|da\s+riparare|da\s+testare|untested|non\s+testato|as.is)\b"
     # Explicit standalone components often missing the word "ricambio".
     components = r"\b(?:scheda (?:alimentazione|pc|di controllo|elettronica)|display board|digitron|control panel|pannello di controllo|porta completa|scheda madre|power board|microonde.*(?:scheda|pannello)|(?:wb27x|wb07x|de92-|eax\d|ebr\d|adc\d{6,})[a-z0-9-]*)\b"
-    if match(components, t):
+    if match(r"\b(?:senza ciotola|senza accessori|solo unità|solo unita|solo mixer|senza chiave|no chiave)\b", t):
+        condition = "Incompleto / da verificare"
+    elif match(r"\b(?:solo motore|solo base|attacco miscelatore|solo coperchio|solo caraffa|motore congelatore|ricambi?|pezzi di ricambio|per scheda di controllo|scheda di controllo elettronica)\b", t):
+        condition = "Ricambio / non funzionante"
+    elif match(components, t):
         condition = "Ricambio / non funzionante"
     elif match(r"\b(?:dispositivo base|unità base|unita base|base unit)\b", t):
         condition = "Incompleto / da verificare"
@@ -61,7 +65,19 @@ def classify_kitchen(title):
         # Titles seldom prove all parts are included: prefer cautious wording.
         condition = "Apparecchio presumibilmente completo"
 
+    # Family aliases for sold listings translated from international eBay sites.
     groups = [
+        ("Impastatrici / planetarie", r"cooking chef|chef titanium|chef sense|\bkm096\b|\bkmx\d+\b|miscelatore da appoggio|mixer da appoggio"),
+        ("Macchine per pane / pasta", r"home bakery|bread maker|macchina per il pane|macchina del pane|\bbb[- ]?(?:pac|pdc|cc)[- ]?[a-z0-9]+\b|\bsd[- ]?yr\d+"),
+        ("Macinacaffè / macinacereali", r"mulino elettrico|mulino per cereali|macina grani|macina farina|whisper mill|wondermill|lagom p64"),
+        ("Macchine caffè / filtro / capsule", r"precision brewer|\bkt600\b|cafissimo"),
+        ("Macchine ghiaccio", r"macchina per il ghiaccio|ice maker|ghiaccio pepita"),
+        ("Pentole a pressione / conserve", r"pentola a pressione|canner|pressure canner"),
+        ("Filtrazione / gasatura acqua", r"distillatore.*acqua|filtraggio acqua|generatore di idrogeno|fontana acqua"),
+        ("Sottovuoto / confezionatrici", r"sigillante sottovuoto|sous vide|circolatore ad immersione|vacsy|pro[- ]?2300"),
+        ("Gelatiere / bevande ghiacciate", r"macchina.*gelato|congelatore.*gelato|musso stella"),
+        ("Tostapane / waffle / popcorn", r"cialda.*belga|popcorn|popper"),
+
         ("Multicooker / pentole elettriche", r"instant pot|multicooker|multi.cooker|multifornello|slow cooker|fornello lento|pentola elettrica|speedi|sf301|rockcrok"),
         ("Affettatrici / tritacarne", r"affettatrice|tritacarne|meat slicer|meat grinder"),
         ("Gelatiere / bevande ghiacciate", r"gelatiera|creami|slushi|slushie|soft serve"),
@@ -97,6 +113,7 @@ def classify_kitchen(title):
     # dimensions, prices, year and generic capacity/voltage numbers.
     extra_models = [
         r"\b(?:KM0\d{2}|KM\d{3,4}|SFCM[- ]?CR\d{2}|ENV\d{3}[A-Z]?|ES\d{3}|SF\d{3}|WM\d{4}|KST\d{4}[A-Z]*|BB[- ]?P(?:AC|DC)\d{2}[A-Z]*|KLF\d{2}|TSF\d{2}[A-Z]*|AE\d{4}|K[- ]?3500|KSM\d{2,5}[A-Z]*|K5[- ]?A|BB[- ]?PDC20BA|BB[- ]?PAC20|K5SSWH|TPU\d{5}|BB[- ]?PDC20|WB\d{2}X\d{4,6}|WP\d{7}|KBGV\w{2,8})\b",
+        r"\b(?:K45SS|5KSM3311XEAC|BBCC[- ]?X20|SD[- ]?YR2550|WM2000|BOV900|BTM800XL|LB[- ]?2312|P4INSASBV1TS|BEM825RCH1B|KVC[- ]?5000|KMX81|WGCM100S|RD[- ]?5083|BVMC[- ]?EL1|SFCM[- ]?CR10|KSM90OB|ES601|ENV300B|BB[- ]?PAC20|BB[- ]?PDC20|OP500UK|KST4054CU)\b",
         r"\b(?:Professional 750|Professional 600|Cooking Chef Major|Luxe Caf[eé] Premier|Talea Giro|Encore ESP|Ode Brew|Lagom P64|Virtuoso Plus|Barista Express|Barista Touch)\b",
     ]
     for pat in extra_models:
