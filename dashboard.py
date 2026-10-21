@@ -17,7 +17,7 @@ from laptop_taxonomy import classify_laptop
 from location_flags import flag_for_location
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
-ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971','111422','175672')
+ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971','111422','175672','80053')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
 DB = (Path(__file__).resolve().parent / os.getenv('DB_PATH', './data/ebay_sold.db')).resolve()
 
@@ -64,7 +64,7 @@ def fetch(sql, params=()):
 def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
-                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672')
+                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053')
                     GROUP BY c.category_id,c.name ORDER BY n DESC, c.name ASC''')
 
 if 'category_id' not in [r[1] for r in sqlite3.connect(DB).execute('PRAGMA table_info(sales)').fetchall()]:
@@ -80,7 +80,7 @@ except sqlite3.OperationalError:
 CATEGORY_ICONS = {
     '141755':'⚽', '63':'📚', '717':'🧸', '233':'🎲',
     '183446':'🧱', '101376':'🪆', '20667':'🍳', '38250':'☕',
-    '139971':'🎮', '111422':'🍎', '175672':'💻',
+    '139971':'🎮', '111422':'🍎', '175672':'💻', '80053':'🖥️',
 }
 category_df = category_df.sort_values(['n','name'], ascending=[False,True], kind='stable')
 names={str(r.category_id): f"{CATEGORY_ICONS.get(str(r.category_id),'📦')} {r.name} ({int(r.n)} venduti)" for r in category_df.itertuples(index=False)}
