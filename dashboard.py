@@ -347,21 +347,34 @@ if section == '🏷️ Categorie':
                 if str(row['Brand / Editore']) != 'LEGO':
                     return str(row['Famiglia / Serie'])
                 title = str(row['title'] or '').casefold()
-                # Exclude piece counts (3093 pezzi, 3406pz), years and dimensions.
-                tokens = list(re.finditer(r'(?<![a-z0-9])(\d{4,6})(?![a-z0-9])', title))
+                kind = str(row['Tipo costruzione'])
+                if kind == 'Minifigure / personaggi':
+                    ids = list(dict.fromkeys(re.findall(r'(?<![a-z0-9])((?:sw|bat|col|hp|njo|sh|dis|lor|cas|cty|sp|pi)\d{3,5})(?![a-z0-9])', title)))
+                    if len(ids) == 1:
+                        return 'Minifigure ' + ids[0].upper()
+                    return 'Minifigure — ID non identificato' if not ids else 'Minifigure — più ID'
+                if kind in ('Lotti / pezzi misti','Accessori / scatole / ricambi','MOC / compatibili'):
+                    return 'LEGO — ' + kind
+                # Common vintage 3-digit sets and explicit 7-digit promotional sets.
+                # Three-digit extraction is strictly whitelisted to avoid years, quantities and prices.
+                vintage = {'928','924','886','371','306'}
+                promo = {'5000063','5004077','4002019'}
+                tokens = list(re.finditer(r'(?<![a-z0-9])(\d{3,7})(?:-2)?(?![a-z0-9])', title))
                 def valid_match(match):
-                    number = int(match.group(1))
-                    suffix = title[match.end():match.end()+18]
-                    if 1900 <= number <= 2099:
+                    value=match.group(1)
+                    number=int(value)
+                    suffix=title[match.end():match.end()+18]
+                    if re.match(r'\s*(?:pz\b|pzs\b|pezzi\b|pieces\b|pcs\b|parts\b|teil(?:e)?\b|briques\b)',suffix):
                         return False
-                    if re.match(r'\s*(?:pz\b|pzs\b|pezzi\b|pieces\b|pcs\b|parts\b|teil(?:e)?\b|briques\b)', suffix):
-                        return False
-                    return True
-                matches = [match.group(1) for match in tokens if valid_match(match)]
-                unique = list(dict.fromkeys(matches))
-                if len(unique) == 1:
-                    return 'LEGO ' + unique[0]
-                if len(unique) > 1:
+                    if len(value)==3:
+                        return value in vintage
+                    if len(value)==7:
+                        return value in promo
+                    return not (1900 <= number <= 2099)
+                matches=list(dict.fromkeys(m.group(1) for m in tokens if valid_match(m)))
+                if len(matches)==1:
+                    return 'LEGO ' + matches[0]
+                if len(matches)>1:
                     return 'LEGO — più codici / bundle da verificare'
                 return 'LEGO — set non identificato'
             subset['Codice set LEGO'] = subset.apply(lego_model, axis=1)
