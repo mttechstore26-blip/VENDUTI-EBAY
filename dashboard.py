@@ -378,6 +378,39 @@ if section == '🏷️ Categorie':
                     return 'LEGO — più codici / bundle da verificare'
                 return 'LEGO — set non identificato'
             subset['Codice set LEGO'] = subset.apply(lego_model, axis=1)
+            # Names are keyed by verified set code. Retirement is displayed ONLY
+            # when explicitly confirmed on the official LEGO Italy product page.
+            lego_catalog = {
+                '76294': ('X-Men: X-Mansion', 'disponibile'),
+                '21325': ('Fabbro medievale', 'ritirato'),
+                '10308': ('Natale nella strada principale', 'ritirato'),
+                '21336': ('The Office', 'ritirato'),
+                '10325': ('Baita alpina', 'ritirato'),
+                '76178': ('Daily Bugle', 'ritirato'),
+                '10267': ('Casa di pan di zenzero', 'ritirato'),
+                '21341': ('Disney Hocus Pocus: cottage delle sorelle Sanderson', 'da verificare'),
+                '75192': ('Millennium Falcon', 'da verificare'),
+                '21351': ('Nightmare Before Christmas', 'da verificare'),
+                '76218': ('Sanctum Sanctorum', 'da verificare'),
+                '10300': ('Macchina del tempo di Ritorno al futuro', 'da verificare'),
+                '21343': ('Villaggio vichingo', 'da verificare'),
+                '21326': ('Winnie the Pooh', 'da verificare'),
+            }
+            def lego_label(value):
+                found = re.fullmatch(r'LEGO (\d{3,7})', str(value))
+                if not found:
+                    return value
+                code = found.group(1)
+                entry = lego_catalog.get(code)
+                if entry is None:
+                    return value
+                name, state = entry
+                symbol = '🔴 ' if state == 'ritirato' else ''
+                return f'{symbol}LEGO {code} - {name}'
+            subset['Codice set LEGO'] = subset['Codice set LEGO'].map(lego_label)
+            st.caption('🔴 Prodotto ritirato secondo LEGO Italia (verifica 21/10/2026). '
+                       'Senza icona = stato non confermato come ritirato; non equivale a disponibile.')
+
             # Distinguish condition separately from set identity and type.
             def lego_condition(row):
                 title = str(row['title'] or '').casefold()
