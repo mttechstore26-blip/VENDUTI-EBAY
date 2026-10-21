@@ -330,7 +330,7 @@ if section == '🏷️ Categorie':
                     return 'Minifigure / personaggi'
                 if re.search(r'\b(?:lotto|lotti|lot\s+of|bulk\s+lego|sfuso|mixed\s+bricks|misti)\b', title):
                     return 'Lotti / pezzi misti'
-                if re.search(r'\b(?:moc|custom\s+build|compatibile|compatible\s+with\s+lego|non\s+lego)\b', title):
+                if re.search(r'\b(?:replica|riproduzione|imitazione|counterfeit|fake|bootleg|moc|custom\s+build|compatibile|compatible\s+with\s+lego|non\s+lego)\b', title):
                     return 'MOC / compatibili'
                 if re.search(r'\b(?:incomplet[oaie]|pezzi\s+mancanti|missing\s+pieces|non\s+completo|without\s+pieces)\b', title):
                     return 'Set incompleti / pezzi mancanti'
@@ -347,23 +347,23 @@ if section == '🏷️ Categorie':
                 if str(row['Brand / Editore']) != 'LEGO':
                     return str(row['Famiglia / Serie'])
                 title = str(row['title'] or '').casefold()
-                code = str(row['Modello / Edizione'] or '')
-                # Explicit LEGO/set labels have priority, regardless of position.
-                matches = re.findall(r'(?<!\d)(\d{4,6})(?!\d)', title)
-                def plausible(value):
-                    number = int(value)
-                    return not (1900 <= number <= 2099 or number in (2023, 2024, 2025, 2026))
-                candidates = [value for value in matches if plausible(value)]
-                explicit = re.search(r'\b(?:lego|set|set\s+n[°o.]?|nr\.?|codice|art\.?)\s*(?:n[°o.]?|#|:|-)?\s*(\d{4,6})\b', title)
-                if explicit and plausible(explicit.group(1)):
-                    number = explicit.group(1)
-                elif len(set(candidates)) == 1 and re.search(r'\blego\b', title):
-                    number = candidates[0]
-                elif re.fullmatch(r'\d{4,6}',code) and code in candidates and len(set(candidates)) == 1:
-                    number = code
-                else:
-                    return 'LEGO — set non identificato'
-                return 'LEGO ' + number
+                # Exclude piece counts (3093 pezzi, 3406pz), years and dimensions.
+                tokens = list(re.finditer(r'(?<![a-z0-9])(\d{4,6})(?![a-z0-9])', title))
+                def valid_match(match):
+                    number = int(match.group(1))
+                    suffix = title[match.end():match.end()+18]
+                    if 1900 <= number <= 2099:
+                        return False
+                    if re.match(r'\s*(?:pz\b|pzs\b|pezzi\b|pieces\b|pcs\b|parts\b|teil(?:e)?\b|briques\b)', suffix):
+                        return False
+                    return True
+                matches = [match.group(1) for match in tokens if valid_match(match)]
+                unique = list(dict.fromkeys(matches))
+                if len(unique) == 1:
+                    return 'LEGO ' + unique[0]
+                if len(unique) > 1:
+                    return 'LEGO — più codici / bundle da verificare'
+                return 'LEGO — set non identificato'
             subset['Codice set LEGO'] = subset.apply(lego_model, axis=1)
             # Distinguish condition separately from set identity and type.
             def lego_condition(row):
