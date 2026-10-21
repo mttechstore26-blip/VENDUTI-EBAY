@@ -7,6 +7,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -62,17 +63,30 @@ if not jobs:
     print(f"Ore {hour:02d}: nessuna raccolta prevista.")
     sys.exit(0)
 
-try:
-    response = requests.get(
-        "https://api.sold-comps.com/usage",
-        headers={"Authorization": f"Bearer {key}"},
-        timeout=(5, 12),
-    )
-    response.raise_for_status()
-    remaining = int(response.json()["usage"]["remaining"])
-except (requests.RequestException, KeyError, TypeError, ValueError) as exc:
-    print(f"Raccolta sospesa: impossibile verificare la quota ({type(exc).__name__}).")
-    sys.exit(0)
+# Retry only transient connection failures before any category requests are sent.
+# Authentication, quota and malformed-response errors must not trigger retries.
+remaining = None
+for attempt in range(1, 4):
+    try:
+        response = requests.get(
+            "https://api.sold-comps.com/usage",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=(5, 12),
+        )
+        response.raise_for_status()
+        remaining = int(response.json()["usage"]["remaining"])
+        break
+    except (requests.ConnectionError, requests.Timeout) as exc:
+        print(f"Verifica quota: tentativo {attempt}/3 fallito ({type(exc).__name__}).", flush=True)
+        if attempt < 3:
+            time.sleep(5)
+    except (requests.RequestException, KeyError, TypeError, ValueError) as exc:
+        print(f"Raccolta sospesa: impossibile verificare la quota ({type(exc).__name__}).", flush=True)
+        sys.exit(1)
+
+if remaining is None:
+    print("Raccolta sospesa: verifica quota non riuscita dopo 3 tentativi.", flush=True)
+    sys.exit(1)
 
 reserve = 10
 failures = 0
