@@ -396,12 +396,24 @@ if section == '🏷️ Categorie':
                 '21343': ('Villaggio vichingo', 'da verificare'),
                 '21326': ('Winnie the Pooh', 'da verificare'),
             }
+            @st.cache_data(ttl=3600, show_spinner=False)
+            def load_lego_catalog():
+                path = Path(__file__).resolve().parent / 'data/lego_catalog.db'
+                if not path.exists():
+                    return {}
+                try:
+                    with sqlite3.connect(f'file:{path.as_posix()}?mode=ro',uri=True,timeout=5) as cn:
+                        return {code:(name,status) for code,name,status in cn.execute(
+                            'SELECT code,name,status FROM lego_catalog WHERE name IS NOT NULL')}
+                except sqlite3.Error:
+                    return {}
+            official_catalog = load_lego_catalog()
             def lego_label(value):
                 found = re.fullmatch(r'LEGO (\d{3,7})', str(value))
                 if not found:
                     return value
                 code = found.group(1)
-                entry = lego_catalog.get(code)
+                entry = official_catalog.get(code) or lego_catalog.get(code)
                 if entry is None:
                     return value
                 name, state = entry
