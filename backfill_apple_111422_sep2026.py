@@ -129,7 +129,7 @@ def main():
                          best_offer_accepted,scraped_at,first_seen,category_id,item_location)
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (
-                            "ebay.it", item_id, item.get("title"), item.get("url"),
+                            "ebay.it:111422", item_id, item.get("title"), item.get("url"),
                             item.get("thumbnailUrl"), item.get("endedAt"), price,
                             item.get("soldCurrency"), number(item.get("shippingPrice")),
                             number(item.get("totalPrice")), item.get("condition"),
