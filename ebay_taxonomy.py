@@ -373,7 +373,48 @@ def classify(category_id, title):
             ("Weird Western Tales", r"weird western tales"),
             ("Haunted / Charlton", r"\bhaunted\b.*(?:charlton|sutton)"),
         ]
+        # Common series in previously unclassified sold listings; more precise
+        # comic-series names take priority over generic characters and formats.
+        additional_comics = [
+            ("Captain America", r"\b(?:captain america|capitan america)\b"),
+            ("Incredible Hulk", r"\b(?:incredible hulk|incredibile hulk)\b"),
+            ("Tales of Suspense", r"\btales of suspense\b"),
+            ("Tales to Astonish", r"\btales to astonish\b"),
+            ("Marvel Spotlight", r"\bmarvel spotlight\b"),
+            ("Marvel Mystery Comics", r"\bmarvel mystery comics\b"),
+            ("Mystery in Space", r"\bmystery in space\b"),
+            ("Nightwing", r"\bnightwing\b"),
+            ("Power Girl", r"\bpower girl\b"),
+            ("Psylocke", r"\bpsylocke\b"),
+            ("Venom: Lethal Protector", r"\bvenom\b.*\blethal protector\b"),
+            ("Venom", r"\bvenom\b"),
+            ("Super-Villain Team-Up", r"\bsuper[ -]?villain team[ -]?up\b"),
+            ("Super Friends", r"\bsuper friends\b"),
+            ("Savage Dragon", r"\bsavage dragon\b"),
+            ("Ghost Rider", r"\bghost rider\b"),
+            ("Shock SuspenStories", r"\bshock suspenstories\b"),
+            ("Young Romance", r"\byoung romance\b"),
+            ("Betty and Veronica", r"\bbetty and veronica\b|archie.s girls"),
+            ("Bartman", r"\bbartman\b"),
+            ("Power Hour", r"\bpower hour\b"),
+            ("Something Is Killing the Children", r"qualcosa sta uccidendo i bambini"),
+            ("God of War", r"\bgod of war\b"),
+            ("Mortal Kombat", r"\bmortal kombat\b"),
+            ("Mushoku Tensei", r"\bmushoku tensei\b"),
+            ("Sailor Moon", r"\bsailor (?:moon|scout)\b"),
+            ("Il Giornalino", r"\bil giornalino\b"),
+            ("Jonny Logan", r"\bjonny logan\b"),
+            ("Blek / Miki", r"\b(?:capitan )?(?:miki|blek)\b"),
+            ("Tintin", r"\btintin\b|\btintin\b"),
+            ("Alix", r"\balix\b"),
+            ("Knuckles", r"\bknuckles\b.*(?:archie|sonic|serie)"),
+            ("Demon Slayer", r"\bdemon slayer\b|kimetsu no yaiba"),
+            ("Weekly Shonen Jump", r"\b(?:weekly )?shonen jump\b"),
+            ("Transformers", r"\btransformers\b"),
+        ]
         family = next((name for name, pattern in series if re.search(pattern, t)), None)
+        if family is None:
+            family = next((name for name, pattern in additional_comics if re.search(pattern, t)), None)
         if family is None:
             family = next((name for name, pattern in more_series if re.search(pattern, t)), None)
         if family is None:
