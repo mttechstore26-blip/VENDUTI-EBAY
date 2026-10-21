@@ -627,7 +627,12 @@ if section == '🏷️ Categorie':
                 p=urlparse(url)
                 valid=p.scheme=='https' and bool(p.hostname) and (p.hostname=='ebay.it' or p.hostname.endswith('.ebay.it') or p.hostname=='ebay.com' or p.hostname.endswith('.ebay.com'))
                 flag,flag_info=flag_for_location(getattr(item,'item_location',None))
-                title = f'<span title="{escape(flag_info,quote=True)}">{flag}</span> ' + title
+                badge_style = 'display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-right:.18em;vertical-align:-0.08em;'
+                if flag == "🇮🇹":
+                    badge_style += 'font-size:1.38em;padding:.02em .18em;border-radius:.38em;background:linear-gradient(135deg,#dff6e5 0%,#ffffff 48%,#ffe3e3 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.10);'
+                else:
+                    badge_style += 'font-size:1.0em;'
+                title = f'<span title="{escape(flag_info,quote=True)}" style="{badge_style}">{flag}</span> ' + title
                 title_html=f'<a href="{escape(url,quote=True)}" target="_blank" rel="noopener noreferrer">{title}</a>' if valid else title
                 image_url=str(item.image or '')
                 img_parsed=urlparse(image_url)
@@ -689,7 +694,12 @@ elif section != '🏷️ Categorie':
         link = safe_link(item['url'])
         title = escape(str(item['title'] if pd.notna(item['title']) else 'Senza titolo'))
         flag,flag_info=flag_for_location(item.get('item_location'))
-        title = f'<span title="{escape(flag_info,quote=True)}">{flag}</span> ' + title
+        badge_style = 'display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-right:.18em;vertical-align:-0.08em;'
+        if flag == "🇮🇹":
+            badge_style += 'font-size:1.38em;padding:.02em .18em;border-radius:.38em;background:linear-gradient(135deg,#dff6e5 0%,#ffffff 48%,#ffe3e3 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.10);'
+        else:
+            badge_style += 'font-size:1.0em;'
+        title = f'<span title="{escape(flag_info,quote=True)}" style="{badge_style}">{flag}</span> ' + title
         title_cell = f'<a href="{link}" target="_blank" rel="noopener noreferrer">{title}</a>' if link else title
         image_url = str(item['image']) if pd.notna(item['image']) else ''
         image_ok = urlparse(image_url).scheme == 'https'
