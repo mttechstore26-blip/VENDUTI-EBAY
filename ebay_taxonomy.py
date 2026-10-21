@@ -87,6 +87,83 @@ def classify(category_id, title):
         year = re.search(r"\b(19[5-9]\d|20[0-2]\d)(?:\s*[/\-]\s*(?:\d{2}|20\d{2}))?\b",t)
         model = year.group(0) if year else "Anno / edizione non identificato"
         return brand, family, model
+    if str(category_id) == "233":
+        # Board games category also contains tabletop miniatures, RPGs and accessories.
+        # Distinguish these before applying a named-game match.
+        warhammer = bool(re.search(r"\b(?:warhammer|40k|40,000|age of sigmar|aos|space marines|adeptus|tyranids|necrons|orks|stormcast|soulblight|seraphon|slaves to darkness)\b", t))
+        subtypes = [
+            ("Ricambi / componenti / pezzi", r"\b(?:replacement parts?|ricambi|pezzi di ricambio|only pieces|solo (?:plancia|pedine|dadi|carte|tabellone)|spare parts?)\b"),
+            ("Espansioni / DLC fisici", r"\b(?:espansione|expansion|expansion pack|add.on|scenario pack|campaign expansion|saga expansion)\b"),
+            ("Miniature / figure da tavolo", r"\b(?:miniatur[ae]|miniatures?|mini\b|28\s?mm|32\s?mm|dipint[oaie]|painted|sprue|sprues|resin cast|resina)\b"),
+            ("Manuali / moduli RPG", r"\b(?:manuale|manual|rulebook|core rulebook|player.s handbook|dungeon master.s guide|campaign book|sourcebook|gazetteer|modul[oe]|supplemento)\b"),
+            ("Lotti / collezioni", r"\b(?:lotto|lot\b|bundle|collection|collezione|bulk|stock)\b"),
+        ]
+        games = [
+            ("Warhammer 40.000", "Games Workshop", r"\b(?:warhammer\s*(?:40|40k|40,000)|40k|space marines|chaos space marines|custodes|adeptus mechanicus|tyranids|necrons|ork wazbom|imperial knights)\b"),
+            ("Warhammer Age of Sigmar", "Games Workshop", r"\b(?:age of sigmar|seraphon|stormcast|soulblight|nighthaunt|slaves to darkness|lord kroak)\b"),
+            ("Warhammer Fantasy / Old World", "Games Workshop", r"\b(?:warhammer fantasy|the old world)\b"),
+            ("Blood Bowl", "Games Workshop", r"\bblood bowl\b"),
+            ("Warhammer: Kill Team", "Games Workshop", r"\bkill team\b"),
+            ("Battlefleet Gothic", "Games Workshop", r"\bbattlefleet gothic\b"),
+            ("Necromunda", "Games Workshop", r"\bnecromunda\b"),
+            ("Warhammer / Games Workshop", "Games Workshop", r"\b(?:warhammer|games workshop|citadel miniatures)\b"),
+            ("Dungeons & Dragons", "Wizards of the Coast / TSR", r"\b(?:dungeons?\s*(?:and|&)\s*dragons|d\s*&\s*d\b|ad&d|advanced dungeons|forgotten realms|mystara|dragonlance|monster manual|stormwreck isle)\b"),
+            ("Pathfinder / Starfinder", "Paizo", r"\b(?:pathfinder|starfinder)\b"),
+            ("Call of Cthulhu", "Chaosium", r"\b(?:call of cthulhu|richiamo di cthulhu)\b"),
+            ("Altri giochi di ruolo", "Giochi di ruolo", r"\b(?:\brpg\b|role.playing game|gioco di ruolo|daggerheart|vampire the masquerade|nightlife 3)\b"),
+            ("BattleTech", "Catalyst / FASA", r"\bbattletech\b|battle mechs"),
+            ("Heroscape", "Hasbro / Renegade", r"\bheroscape\b"),
+            ("Mahjong", "Vari", r"\bmah[ -]?jongg?\b"),
+            ("Backgammon", "Vari", r"\bbackgammon\b"),
+            ("Scacchi", "Vari", r"\bscacchi\b|\bchess\b"),
+            ("Domino", "Vari", r"\bdomino\b|dominoes"),
+            ("Carte da gioco / poker", "Vari", r"\b(?:playing cards|carte da gioco|poker chips|poker set|mazzo di carte|bridge cards)\b"),
+            ("Bingo / tombola", "Vari", r"\b(?:bingo|tombola)\b"),
+            ("Monopoly", "Hasbro", r"\bmonopol[yi]\b"),
+            ("Risiko / Risk", "Hasbro", r"\brisiko\b|\brisk\b.*(?:gioco|board|edition)"),
+            ("Catan", "Kosmos / Asmodee", r"\bcatan\b"),
+            ("Ticket to Ride", "Days of Wonder", r"ticket to ride"),
+            ("Twilight Imperium", "Fantasy Flight Games", r"twilight imperium"),
+            ("HeroQuest", "Hasbro", r"heroquest"),
+            ("Space Hulk", "Games Workshop", r"space hulk"),
+            ("StarCraft", "Fantasy Flight / Blizzard", r"\bstarcraft\b"),
+            ("Star Wars: Legion / Armada / X-Wing", "Fantasy Flight / Atomic Mass", r"star wars.*(?:legion|armada|x[ -]?wing)|(?:legion|armada|x[ -]?wing).*star wars"),
+            ("Flames of War / Team Yankee", "Battlefront", r"flames of war|fiamme della guerra|team yankee"),
+            ("Infinity", "Corvus Belli", r"\binfinity\b.*(?:operation|operazione|corvus|sandtrap)"),
+            ("Trench Crusade", "Vari", r"trench crusade"),
+            ("Horror / Zombicide / CMON", "CMON", r"\bzombicide\b"),
+            ("Bloodborne", "CMON", r"\bbloodborne\b"),
+            ("Marvel United / CMON", "CMON", r"\bmarvel united\b"),
+            ("A Song of Ice and Fire", "CMON", r"a song of ice and fire|targaryen heroes|baratheon.*(?:mini|lightbringers)"),
+            ("Castle Panic", "Fireside Games", r"castle panic"),
+            ("Betrayal / Tradimento", "Avalon Hill", r"betrayal at house|tradimento legacy"),
+            ("Squad Leader / Advanced Squad Leader", "Avalon Hill / MMP", r"squad leader|\basl\b.*(?:module|game|scenario)"),
+            ("Avalon Hill / Wargame", "Avalon Hill", r"avalon hill|russian front|fronte russo|longest day"),
+            ("Giochi storici / wargame", "Vari", r"\bwargame\b|mmp.*(?:ocs|game)|operational combat series"),
+            ("Munchkin", "Steve Jackson Games", r"\bmunchkin\b"),
+            ("The Castles of Burgundy", "Ravensburger / Alea", r"castelli di borgogna|castles of burgundy"),
+            ("ISS Vanguard", "Awaken Realms", r"iss vanguard"),
+            ("Dwarven Forge / scenari", "Dwarven Forge", r"dwarven forge"),
+            ("Orlog", "PureArts / Ubisoft", r"\borlog\b"),
+        ]
+        game = next(((name,brand) for name,brand,pattern in games if re.search(pattern,t)),None)
+        if game:
+            family,brand=game
+        else:
+            brand="Non identificato"
+            family="Altri giochi di società"
+        kind = next((name for name,pattern in subtypes if re.search(pattern,t)),None)
+        if kind:
+            # Preserve franchise while separating components from base games.
+            family = family + " — " + kind if game else kind
+        if re.search(r"\b(?:sigillat[oaie]|sealed|nuovo)\b",t) and not kind:
+            pass  # Condition is not a distinct game model.
+        edition = re.search(r"\b(?:\d+(?:a|ª|st|nd|rd|th)\s+edizione|(?:first|second|third|fourth|quinta|quarta|terza|seconda|prima)\s+(?:edizione|edition)|deluxe|kickstarter|collector.s edition|edizione speciale)\b",t)
+        model = edition.group(0).title() if edition else "Edizione non identificata"
+        if family == "Altri giochi di società":
+            # Keep uncategorized listings visible rather than guessing a brand or title.
+            model = "Modello non identificato"
+        return brand,family,model
     if str(category_id) == "101376":
         families = [
             ("Furga", "Furga — vintage", r"\bfurga\b"),
