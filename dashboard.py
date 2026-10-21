@@ -563,11 +563,11 @@ if section == '🏷️ Categorie':
         ranking_col={'Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
-        cols = [display_group,'Venduti','Venduti 7 gg','Venduti 30 gg']
         if export_id == '183446':
-            cols += ['Venditori','Ripetute','Concentrazione']
-            st.caption('👥 Venditori = account distinti identificabili. Ripetute = vendite oltre la prima per modello e venditore (non necessariamente repliche). Concentrazione = quota del venditore principale tra le vendite con venditore noto.')
-        cols += ['Trend 30 gg','Prezzo','Prezzo minimo','Prezzo massimo','Tempo vendita']
+            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo']
+        else:
+            cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
+                    'Trend 30 gg', 'Prezzo', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
 
         state=st.dataframe(
