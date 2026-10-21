@@ -495,6 +495,26 @@ if section == '🏷️ Categorie':
             subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971','111422','175672') else subset.apply(modello_commerciale, axis=1))
             group_level = 'Modello commerciale'
 
+        elif export_id == '80053':
+            # Every row is grouped by its actual identifiable monitor model,
+            # not by generic panel type such as "Monitor gaming LCD".
+            subset = subset.copy()
+            def monitor_model_label(row):
+                brand = str(row['Brand / Editore'])
+                model = str(row['Modello / Edizione'])
+                if row['Famiglia / Serie'] == 'Non è un monitor':
+                    return 'Fuori categoria — ' + str(row['item_id'])
+                if model not in ('Modello non identificato', 'Più modelli / lotto', 'nan', ''):
+                    return (brand + ' ' if brand != 'Non identificato' else '') + model
+                if model == 'Più modelli / lotto':
+                    return 'Lotto di più monitor — ' + str(row['item_id'])
+                # Retain seller title and item ID rather than falsely combining
+                # different unknown models into one pseudo-model.
+                return (brand + ' — modello da verificare: ' if brand != 'Non identificato'
+                        else 'Monitor da identificare: ') + str(row['title'])[:85] + ' [' + str(row['item_id']) + ']'
+            subset['Modello monitor'] = subset.apply(monitor_model_label, axis=1)
+            group_level = 'Modello monitor'
+
         elif export_id == '183446':
             group_level = 'Codice set LEGO'
         else:
@@ -516,7 +536,7 @@ if section == '🏷️ Categorie':
                  Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'),
                  Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
-        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446') else 'Famiglia'
+        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Prezzo']=family_stats['Prezzo'].apply(eur)
         family_stats['Prezzo minimo']=family_stats['Prezzo_min'].apply(eur)
