@@ -27,7 +27,7 @@ def classify_kitchen(title):
         ("Waring", r"\bwaring\b"), ("Silvercrest", r"silvercrest|monsieur cuisine"),
         ("Cuckoo", r"\bcuckoo\b"), ("Kuvings", r"kuvings"),
         ("Mockmill", r"mockmill"), ("Oster", r"\boster\b"),
-        ("GE", r"\bge\b.*(?:opal|profile|brew|coffee)"),
+        ("GE", r"\bge\b.*(?:opal|profile|brew|coffee|ghiaccio|ice maker)|\bp4insasbv1ts\b"),
         ("Black & Decker", r"black\s*(?:&|and)\s*decker"),
         ("Saladmaster", r"saladmaster"), ("Magic Mill", r"magic mill"),
         ("VacMaster", r"vacmaster"), ("Nutrimill", r"nutrimill"),
@@ -112,6 +112,7 @@ def classify_kitchen(title):
     # Require recognizable manufacturer prefixes, with boundary guards against
     # dimensions, prices, year and generic capacity/voltage numbers.
     extra_models = [
+        r"\bBEM825[A-Z0-9]*\b",
         r"\b(?:KM0\d{2}|KM\d{3,4}|SFCM[- ]?CR\d{2}|ENV\d{3}[A-Z]?|ES\d{3}|SF\d{3}|WM\d{4}|KST\d{4}[A-Z]*|BB[- ]?P(?:AC|DC)\d{2}[A-Z]*|KLF\d{2}|TSF\d{2}[A-Z]*|AE\d{4}|K[- ]?3500|KSM\d{2,5}[A-Z]*|K5[- ]?A|BB[- ]?PDC20BA|BB[- ]?PAC20|K5SSWH|TPU\d{5}|BB[- ]?PDC20|WB\d{2}X\d{4,6}|WP\d{7}|KBGV\w{2,8})\b",
         r"\b(?:K45SS|5KSM3311XEAC|BBCC[- ]?X20|SD[- ]?YR2550|WM2000|BOV900|BTM800XL|LB[- ]?2312|P4INSASBV1TS|BEM825RCH1B|KVC[- ]?5000|KMX81|WGCM100S|RD[- ]?5083|BVMC[- ]?EL1|SFCM[- ]?CR10|KSM90OB|ES601|ENV300B|BB[- ]?PAC20|BB[- ]?PDC20|OP500UK|KST4054CU)\b",
         r"\b(?:Professional 750|Professional 600|Cooking Chef Major|Luxe Caf[eé] Premier|Talea Giro|Encore ESP|Ode Brew|Lagom P64|Virtuoso Plus|Barista Express|Barista Touch)\b",
