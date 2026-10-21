@@ -89,8 +89,9 @@ def fetch_page(page):
 
 def run():
     conn = connect()
-    site = os.getenv('EBAY_SITE', 'ebay.it')
     category_id = os.getenv('EBAY_CATEGORY_ID', '141755')
+    # Apple monitor may overlap another laptop category; isolate its SQLite PK.
+    site = os.getenv('EBAY_SITE', 'ebay.it') + (':111422' if category_id == '111422' else '')
     category_name = os.getenv('EBAY_CATEGORY_NAME', 'Album di figurine' if category_id=='141755' else 'Categoria '+category_id)
     conn.execute('INSERT INTO categories(category_id,name) VALUES (?,?) ON CONFLICT(category_id) DO UPDATE SET name=excluded.name', (category_id,category_name))
     conn.commit()
