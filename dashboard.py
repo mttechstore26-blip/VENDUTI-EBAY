@@ -795,13 +795,18 @@ if section == '🏷️ Categorie':
             cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
                     'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
+        # Only display labels change; all calculations retain their original keys.
+        family_stats = family_stats.rename(columns={
+            'Prezzo': 'Prezzo mediano',
+            'Prezzo P25': 'Prezzo prudente (P25)',
+        })
 
         # Compact toolbar instead of a tall stack before the ranking table.
         left_filters, right_filters = st.columns([3, 2], gap='small')
         with left_filters:
             st.toggle('⭐ Solo watchlist', key='watchlist_only', value=False)
         with right_filters:
-            st.caption('💰 P25 prudente · margini 25/30/40 €')
+            st.caption('📊 Mediana e P25 comparabili · margini 25/30/40 €')
 
         if st.session_state.get('watchlist_only', False):
             family_stats = family_stats[family_stats['⭐ Watchlist'] == '⭐'].copy()
@@ -812,7 +817,12 @@ if section == '🏷️ Categorie':
             except (TypeError,ValueError):
                 return ''
         highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in family_stats.columns]
-        styled_stats = family_stats.style.map(price_highlight, subset=highlight_cols) if highlight_cols else family_stats.style
+        styled_stats = family_stats.style
+        if highlight_cols:
+            styled_stats = styled_stats.map(price_highlight, subset=highlight_cols)
+        styled_stats = styled_stats.set_properties(
+            subset=[display_group], **{'font-weight':'700','color':'#172b4d'}
+        )
         state=st.dataframe(
             styled_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
@@ -822,6 +832,8 @@ if section == '🏷️ Categorie':
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
+                           'Prezzo mediano':st.column_config.TextColumn('Prezzo mediano',width='medium',help='Mediana di tutte le vendite registrate nel gruppo.'),
+                           'Prezzo prudente (P25)':st.column_config.TextColumn('Prezzo prudente (P25)',width='medium',help='25° percentile dei soli annunci considerati comparabili.'),
                            'Acquisto massimo €':st.column_config.NumberColumn('Acquisto massimo €',format='%.0f €'),
                            'Acquisto prudente €':st.column_config.NumberColumn('Acquisto prudente €',format='%.0f €'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
