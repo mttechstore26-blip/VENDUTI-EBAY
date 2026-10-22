@@ -817,8 +817,18 @@ if section == '🏷️ Categorie':
                 return 'background-color:#dcfce7;color:#14532d;font-size:19px;font-weight:800' if 80<=float(v)<=130 else ''
             except (TypeError,ValueError):
                 return ''
-        highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in family_stats.columns]
-        styled_stats = family_stats.style.format(na_rep='—')
+        # Default: six decision-driving columns; retain all other columns
+        # in an optional detail view without changing the selected row IDs.
+        compact_cols = [display_group, 'Venduti 30 gg', 'Prezzo mediano',
+                        'Prezzo prudente (P25)', 'Acquisto massimo €',
+                        'Acquisto prudente €']
+        with st.expander('📊 Mostra statistiche complete', expanded=False):
+            st.dataframe(family_stats, hide_index=True, width='stretch',
+                         height=min(420, 60 + 35*len(family_stats)),
+                         key='ebay_full_stats')
+        visible_stats = family_stats[compact_cols].copy()
+        highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in visible_stats.columns]
+        styled_stats = visible_stats.style.format(na_rep='—')
         if highlight_cols:
             styled_stats = styled_stats.map(price_highlight, subset=highlight_cols)
         styled_stats = styled_stats.set_properties(
@@ -833,8 +843,8 @@ if section == '🏷️ Categorie':
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
-                           'Prezzo mediano':st.column_config.TextColumn('Prezzo mediano',width='medium',help='Mediana di tutte le vendite registrate nel gruppo.'),
-                           'Prezzo prudente (P25)':st.column_config.TextColumn('Prezzo prudente (P25)',width='medium',help='25° percentile dei soli annunci considerati comparabili.'),
+                           'Prezzo mediano':st.column_config.TextColumn('Mediana',width='small',help='Mediana di tutte le vendite registrate nel gruppo.'),
+                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width='small',help='25° percentile dei soli annunci considerati comparabili.'),
                            'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width='small',help='Prezzo massimo di acquisto stimato dalla mediana delle vendite comparabili'),
                            'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width='small',help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
