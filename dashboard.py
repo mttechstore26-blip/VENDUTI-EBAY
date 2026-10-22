@@ -670,7 +670,21 @@ if section == '🏷️ Categorie':
             group_level = 'Modello commerciale'
 
         elif export_id == '31388':
-            group_level = 'Modello / Edizione'
+            # Compare like with like: camera model AND included lens configuration.
+            # Never mix e.g. EOS 750D body only and EOS 750D with two lenses.
+            subset = subset.copy()
+            subset['Modello / configurazione'] = (
+                subset['Modello / Edizione'].fillna('Modello da identificare').astype(str)
+                + ' · ' + subset['Stato prodotto'].fillna('Dotazione non specificata').astype(str)
+            )
+            # Unknown models may be different products and must not share a median.
+            unknown_camera = subset['Modello / Edizione'].fillna('').str.contains(
+                'da identificare|da verificare|non identificat', case=False, regex=True
+            )
+            subset.loc[unknown_camera, 'Modello / configurazione'] += (
+                ' [' + subset.loc[unknown_camera, 'item_id'].astype(str) + ']'
+            )
+            group_level = 'Modello / configurazione'
         elif export_id == '80053':
             # Every row is grouped by its actual identifiable monitor model,
             # not by generic panel type such as "Monitor gaming LCD".
@@ -716,6 +730,9 @@ if section == '🏷️ Categorie':
         suspect |= recent['title'].fillna('').astype(str).str.contains(
             r'ricambi|solo scatola|box only|for parts|not working|lot of|lotto di|defekt',
             case=False,regex=True)
+        if export_id == '31388':
+            # Conservative buy-price suggestions only with a declared configuration.
+            suspect |= recent['Stato prodotto'].fillna('').astype(str).eq('Dotazione non specificata')
         recent['_comparable'] = ~suspect
         recent['_comparable_price'] = recent['sold_price'].where(~suspect)
         family_stats=(recent.groupby(group_level,dropna=False)
