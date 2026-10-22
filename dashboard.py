@@ -344,8 +344,23 @@ if section == '🏷️ Categorie':
                                                      index=known_families.index(current_family)+1)
                         family_final = (st.text_input('Nome nuova famiglia', placeholder='Es. MacBook Pro').strip()
                                         if family_choice == '➕ Nuova famiglia' else family_choice)
-                        model_final = st.text_input('4 · Modello / edizione', value=current_model,
-                                                    max_chars=180, key=f'taxonomy_model_{chosen_item}', help='Puoi precisare modello e anno se noti.')
+                        # MacBooks and several other categories are grouped by MODEL, not by family.
+                        # Picking a family alone would leave the listing in its old visible group.
+                        existing_models = sorted(set(subset.loc[
+                            subset['Brand / Editore'].astype(str).eq(brand_final)
+                            & subset['Famiglia / Serie'].astype(str).eq(family_final),
+                            'Modello / Edizione'].dropna().astype(str)) | {current_model})
+                        model_choice = st.selectbox(
+                            '4 · Gruppo modello di destinazione',
+                            ['➕ Scrivi un nuovo modello'] + existing_models,
+                            index=existing_models.index(current_model)+1,
+                            key=f'taxonomy_target_model_{chosen_item}',
+                            help='La classifica MacBook raggruppa per modello: scegli anche il modello di destinazione.')
+                        model_final = (st.text_input('Nome nuovo modello', placeholder='Es. MacBook Pro Intel 15" (2017)',
+                                                     max_chars=180, key=f'taxonomy_new_model_{chosen_item}').strip()
+                                       if model_choice == '➕ Scrivi un nuovo modello' else model_choice)
+                        if str(current['category_id']) in ('111422','175672','20667','38250','139971'):
+                            st.caption(f'📍 Risultato previsto nella classifica: {model_final or "Inserisci modello"}')
                         submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
                         if submitted:
                             if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
