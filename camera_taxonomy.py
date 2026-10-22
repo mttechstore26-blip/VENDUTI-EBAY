@@ -57,8 +57,15 @@ def classify_camera(title):
             break
     if re.search(r"\b(?:solo\s+corpo|corpo\s+macchina|body\s+only|body\s+reflex|solo\s+body)\b", t):
         state = "Solo corpo"
-    elif re.search(r"\b(?:18[-\s]?55|55[-\s]?250|18[-\s]?105|18[-\s]?200|kit\s+con|con\s+obiettiv|\+\s*obiettiv)\b", t):
-        state = "Kit con obiettivo"
     else:
-        state = "Configurazione da verificare"
+        # Multiple distinct lens focal ranges in the seller title are a
+        # stronger signal than a generic "kit" or a list of accessories.
+        lenses = set(re.findall(r"\b\d{2,3}\s*[-–]\s*\d{2,3}\s*(?:mm)?\b", t))
+        plural = bool(re.search(r"\b(?:due|2|tre|3|quattro|4)\s+(?:obiettiv\w*|lenti|lens\w*)\b|\b(?:obiettiv\w*|lenti|lenses)\s*[x×]\s*[234]\b", t))
+        if plural or len(lenses) >= 2:
+            state = "Kit con più obiettivi"
+        elif len(lenses) == 1 or re.search(r"\b(?:kit\s+con\s+(?:un\s+)?obiettiv\w*|con\s+(?:un\s+)?obiettiv\w*|\+\s*obiettiv\w*)\b", t):
+            state = "Kit con un obiettivo"
+        else:
+            state = "Dotazione non specificata"
     return brand, family, model, state
