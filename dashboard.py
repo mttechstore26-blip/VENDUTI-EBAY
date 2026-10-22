@@ -62,6 +62,15 @@ def watchlist_change(category_id, model_name, add):
 
 ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971','111422','175672','80053')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
+# Compact styling without replacing Streamlit's selection-enabled dataframe.
+st.markdown("""
+<style>
+section[data-testid="stSidebar"] {background:#f8fafc;border-right:1px solid #e2e8f0}
+div[data-testid="stDataFrame"] {border:1px solid #dce5f0;border-radius:13px;overflow:hidden}
+div[data-testid="stExpander"] {border-radius:11px}
+</style>
+""", unsafe_allow_html=True)
+
 DB = (Path(__file__).resolve().parent / os.getenv('DB_PATH', './data/ebay_sold.db')).resolve()
 
 st.markdown('''<style>
@@ -814,7 +823,7 @@ if section == '🏷️ Categorie':
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
                            'Acquisto massimo €':st.column_config.NumberColumn('Acquisto massimo €',format='%.0f €'),
-                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto prudente €',format='%.2f €'),
+                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto prudente €',format='%.0f €'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
             saved = watchlist_names(export_id)
