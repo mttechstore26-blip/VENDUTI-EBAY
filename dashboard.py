@@ -146,7 +146,7 @@ def fetch(sql, params=()):
 def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
-                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388','80053')
+                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')
                     GROUP BY c.category_id,c.name ORDER BY n DESC, c.name ASC''')
 
 if 'category_id' not in [r[1] for r in sqlite3.connect(DB).execute('PRAGMA table_info(sales)').fetchall()]:
@@ -669,6 +669,8 @@ if section == '🏷️ Categorie':
             subset['Modello commerciale'] = (subset['Modello / Edizione'] if export_id in ('38250','139971','111422','175672') else subset.apply(modello_commerciale, axis=1))
             group_level = 'Modello commerciale'
 
+        elif export_id == '31388':
+            group_level = 'Modello / Edizione'
         elif export_id == '80053':
             # Every row is grouped by its actual identifiable monitor model,
             # not by generic panel type such as "Monitor gaming LCD".
@@ -724,7 +726,7 @@ if section == '🏷️ Categorie':
                  Mediana_comparabili=('_comparable_price','median'),
                  Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
-        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053') else 'Famiglia'
+        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053','31388') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Acquisto massimo €'] = family_stats['Mediana_comparabili'].apply(max_buy_price)
         family_stats['Acquisto prudente €'] = family_stats['P25'].apply(max_buy_price)
