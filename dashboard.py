@@ -784,28 +784,16 @@ if section == '🏷️ Categorie':
                     'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
 
-        st.caption('💰 Acquisto massimo calcolato sulla mediana: 10–50 € → margine 25 €; 51–100 € → 30 €; oltre 100 € → 40 €. Nessuna commissione o spedizione. Un valore vuoto indica nessun acquisto compatibile con le soglie.')
-        with st.expander('⭐ La mia watchlist', expanded=False):
-            saved = watchlist_names(export_id)
-            st.write('Modelli salvati:', ', '.join(sorted(saved)) if saved else 'Nessuno')
-            editor_pw = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
-            from hmac import compare_digest
-            typed_pw = st.text_input('Password editor per modificare la watchlist', type='password', key='watchlist_password')
-            if editor_pw and typed_pw and compare_digest(typed_pw, editor_pw):
-                chosen_watch = st.selectbox('Modello / famiglia', family_stats[display_group].astype(str).tolist(), key='watchlist_model')
-                wl_c1, wl_c2 = st.columns(2)
-                if wl_c1.button('⭐ Aggiungi alla watchlist', key='watchlist_add'):
-                    watchlist_change(export_id, chosen_watch, True)
-                    st.rerun()
-                if wl_c2.button('Rimuovi dalla watchlist', key='watchlist_remove'):
-                    watchlist_change(export_id, chosen_watch, False)
-                    st.rerun()
-            elif typed_pw:
-                st.error('Password editor non valida.')
-        if st.checkbox('⭐ Mostra soltanto watchlist', key='watchlist_only'):
+        # Compact toolbar instead of a tall stack before the ranking table.
+        left_filters, right_filters = st.columns([3, 2], gap='small')
+        with left_filters:
+            st.toggle('⭐ Solo watchlist', key='watchlist_only', value=False)
+        with right_filters:
+            st.caption('💰 P25 prudente · margini 25/30/40 €')
+
+        if st.session_state.get('watchlist_only', False):
             family_stats = family_stats[family_stats['⭐ Watchlist'] == '⭐'].copy()
 
-        st.caption('P25 sui prodotti comparabili; almeno 5 vendite per l’acquisto prudente. Indice indicativo, non probabilità di vendita.')
         def price_highlight(v):
             try:
                 return 'background-color:#dbeafe;color:#10346c;font-size:19px;font-weight:800' if 80<=float(v)<=130 else ''
@@ -822,6 +810,24 @@ if section == '🏷️ Categorie':
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg')})
+        with st.expander('⭐ Watchlist · gestisci', expanded=False):
+            saved = watchlist_names(export_id)
+            st.write('Modelli salvati:', ', '.join(sorted(saved)) if saved else 'Nessuno')
+            editor_pw = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
+            from hmac import compare_digest
+            typed_pw = st.text_input('Password editor per modificare la watchlist', type='password', key='watchlist_password')
+            if editor_pw and typed_pw and compare_digest(typed_pw, editor_pw):
+                chosen_watch = st.selectbox('Modello / famiglia', family_stats[display_group].astype(str).tolist(), key='watchlist_model')
+                wl_c1, wl_c2 = st.columns(2)
+                if wl_c1.button('⭐ Aggiungi alla watchlist', key='watchlist_add'):
+                    watchlist_change(export_id, chosen_watch, True)
+                    st.rerun()
+                if wl_c2.button('Rimuovi dalla watchlist', key='watchlist_remove'):
+                    watchlist_change(export_id, chosen_watch, False)
+                    st.rerun()
+            elif typed_pw:
+                st.error('Password editor non valida.')
+
         selected_indices=state.selection.rows
         chosen=family_stats.iloc[selected_indices][display_group].tolist() if selected_indices else []
         selected_data=subset[subset[group_level].isin(chosen)] if chosen else subset.iloc[0:0]
