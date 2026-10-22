@@ -783,7 +783,7 @@ if section == '🏷️ Categorie':
             leader=leaders.iloc[0]
             st.caption(f"🏆 Ultimi 30 gg: **{leader[display_group]}** · **{int(leader['V30'])} venduti** · mediana {leader['Prezzo']}")
         else:
-            st.info('Non ci sono ancora modelli con almeno 5 vendite registrate negli ultimi 30 giorni.')
+            st.caption('ℹ️ Nessun modello con almeno 5 vendite negli ultimi 30 giorni: ordina per venduti totali o visualizza i gruppi disponibili.')
 
         ranking=st.selectbox('Classifica', ['🏆 Radar opportunità','Più venduti ultimi 30 gg','Più venduti ultimi 7 gg','Più venduti in totale'],key='ebay_recent_ranking',label_visibility='collapsed')
         ranking_col={'🏆 Radar opportunità':'Indice opportunità','Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
@@ -802,6 +802,7 @@ if section == '🏷️ Categorie':
         })
 
         # Compact toolbar instead of a tall stack before the ranking table.
+        family_stats = family_stats.replace({None: float('nan')})
         left_filters, right_filters = st.columns([3, 2], gap='small')
         with left_filters:
             st.toggle('⭐ Solo watchlist', key='watchlist_only', value=False)
@@ -817,7 +818,7 @@ if section == '🏷️ Categorie':
             except (TypeError,ValueError):
                 return ''
         highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in family_stats.columns]
-        styled_stats = family_stats.style
+        styled_stats = family_stats.style.format(na_rep='—')
         if highlight_cols:
             styled_stats = styled_stats.map(price_highlight, subset=highlight_cols)
         styled_stats = styled_stats.set_properties(
@@ -828,14 +829,14 @@ if section == '🏷️ Categorie':
             height=min(660, 60 + 42*len(family_stats)),
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
-            column_config={display_group:st.column_config.TextColumn(display_group,width='large'),
+            column_config={display_group:st.column_config.TextColumn(display_group,width='large',help='Modello riconosciuto dagli annunci eBay'),
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
                            'Prezzo mediano':st.column_config.TextColumn('Prezzo mediano',width='medium',help='Mediana di tutte le vendite registrate nel gruppo.'),
                            'Prezzo prudente (P25)':st.column_config.TextColumn('Prezzo prudente (P25)',width='medium',help='25° percentile dei soli annunci considerati comparabili.'),
-                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto massimo €',format='%.0f €'),
-                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto prudente €',format='%.0f €'),
+                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width='small',help='Prezzo massimo di acquisto stimato dalla mediana delle vendite comparabili'),
+                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width='small',help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
             saved = watchlist_names(export_id)
