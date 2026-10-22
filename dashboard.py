@@ -322,7 +322,7 @@ if section == '🏷️ Categorie':
                     if candidates.empty:
                         st.info('Nessun annuncio trovato. Modifica la ricerca.')
                     else:
-                        with st.form('taxonomy_quick_move'):
+                        if True:
                             item_options = list(candidates['item_id'].astype(str))
                             item_labels = {str(r.item_id): f"{r.item_id} · {str(r.title)[:90]} · {eur(r.sold_price)}"
                                            for r in candidates.itertuples(index=False)}
@@ -347,7 +347,7 @@ if section == '🏷️ Categorie':
                                             if family_choice == '➕ Nuova famiglia' else family_choice)
                             model_final = st.text_input('4 · Modello / edizione', value=current_model,
                                                         max_chars=180, help='Puoi precisare modello e anno se noti.')
-                            submitted = st.form_submit_button('💾 Sposta prodotto e aggiorna classifiche', type='primary')
+                            submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
                             if submitted:
                                 if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
                                     st.error('Compila brand, famiglia e modello.')
