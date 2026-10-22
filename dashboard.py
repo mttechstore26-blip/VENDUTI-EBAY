@@ -728,7 +728,7 @@ if section == '🏷️ Categorie':
         ).round().astype(int)
         family_stats.loc[family_stats['Comparabili']<5,'Indice opportunità']=0
         for price_column in ('Acquisto massimo €','Acquisto prudente €'):
-            family_stats[price_column] = pd.to_numeric(family_stats[price_column],errors='coerce').replace([float('inf'),-float('inf')],float('nan')).round(2)
+            family_stats[price_column] = pd.to_numeric(family_stats[price_column],errors='coerce').replace([float('inf'),-float('inf')],float('nan')).apply(lambda v: int(10 * math.floor(float(v) / 10 + 0.5)) if pd.notna(v) else None)
         family_stats['⭐ Watchlist'] = family_stats[display_group].astype(str).isin(watchlist_names(str(subset['category_id'].iloc[0]))).map(
             {True: '⭐', False: ''})
         family_stats['Prezzo P25'] = family_stats['P25'].apply(lambda p:eur(p) if pd.notna(p) else 'N/D')
@@ -799,7 +799,7 @@ if section == '🏷️ Categorie':
 
         def price_highlight(v):
             try:
-                return 'background-color:#dbeafe;color:#10346c;font-size:19px;font-weight:800' if 80<=float(v)<=130 else ''
+                return 'background-color:#dcfce7;color:#14532d;font-size:19px;font-weight:800' if 80<=float(v)<=130 else ''
             except (TypeError,ValueError):
                 return ''
         highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in family_stats.columns]
@@ -813,7 +813,7 @@ if section == '🏷️ Categorie':
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
-                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto massimo €',format='%.2f €'),
+                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto massimo €',format='%.0f €'),
                            'Acquisto prudente €':st.column_config.NumberColumn('Acquisto prudente €',format='%.2f €'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
