@@ -244,9 +244,8 @@ if section == '🏷️ Categorie':
             else:
                 parsed.append((*classify(r.category_id, r.title), 'Non applicabile'))
         raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione','Stato prodotto']] = pd.DataFrame(parsed,index=raw.index)
-        apple_mask = raw['category_id'].astype(str).eq('111422')
         for item_id, model_name in APPLE_MODEL_CORRECTIONS.items():
-            mask = apple_mask & raw['item_id'].astype(str).eq(item_id)
+            mask = raw['category_id'].astype(str).isin(['111422', '175672']) & raw['item_id'].astype(str).eq(item_id)
             raw.loc[mask, ['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = ['Apple', 'MacBook Pro', model_name]
         # Database overrides always take precedence over hardcoded corrections.
         overrides = manual_taxonomy_rows()
