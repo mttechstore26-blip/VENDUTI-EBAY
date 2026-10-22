@@ -690,18 +690,45 @@ if section == '🏷️ Categorie':
         recent['_valid_date'] = sold_dates.notna().astype(int)
         recent['_seller'] = recent['seller'].fillna('').astype(str).str.strip().str.casefold()
         recent.loc[recent['_seller'].isin(['', 'none', 'nan', 'null']), '_seller'] = pd.NA
+        suspect = recent['Modello / Edizione'].fillna('').astype(str).str.contains(
+            r'non identificat|da identificare|non specificat|da verificare|più modelli',
+            case=False,regex=True)
+        suspect |= recent['Stato prodotto'].fillna('').astype(str).str.contains(
+            r'guast|difett|ricamb|accessor|lotto|incomplet|blocc',
+            case=False,regex=True)
+        suspect |= recent['title'].fillna('').astype(str).str.contains(
+            r'ricambi|solo scatola|box only|for parts|not working|lot of|lotto di|defekt',
+            case=False,regex=True)
+        recent['_comparable'] = ~suspect
+        recent['_comparable_price'] = recent['sold_price'].where(~suspect)
         family_stats=(recent.groupby(group_level,dropna=False)
             .agg(Venduti=('item_id','size'), V7=('_7d','sum'), V30=('_30d','sum'),
                  Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'),
+                 Comparabili=('_comparable','sum'),
+                 P25=('_comparable_price',lambda x:x.quantile(.25)),
+                 Mediana_comparabili=('_comparable_price','median'),
                  Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
         display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
-        family_stats['Acquisto massimo €'] = family_stats['Prezzo'].apply(max_buy_price)
+        family_stats['Acquisto massimo €'] = family_stats['Mediana_comparabili'].apply(max_buy_price)
+        family_stats['Acquisto prudente €'] = family_stats['P25'].apply(max_buy_price)
+        family_stats.loc[family_stats['Comparabili'] < 5,'Acquisto prudente €'] = float('nan')
+        family_stats['Rendimento %'] = ((family_stats['P25']-family_stats['Acquisto prudente €'])
+            /family_stats['Acquisto prudente €']*100).where(family_stats['Acquisto prudente €']>0).round(1)
+        family_stats['Affidabilità'] = family_stats['Comparabili'].apply(
+            lambda n:'Alta' if n>=15 else ('Media' if n>=5 else 'Insufficiente'))
+        family_stats['Indice opportunità'] = (
+            55*family_stats['V30'].clip(upper=20)/20
+            +25*family_stats['Rendimento %'].clip(lower=0,upper=60).fillna(0)/60
+            +20*family_stats['Comparabili'].clip(upper=15)/15
+        ).round().astype(int)
+        family_stats.loc[family_stats['Comparabili']<5,'Indice opportunità']=0
         family_stats['Acquisto massimo €'] = family_stats['Acquisto massimo €'].apply(
             lambda v: round(v, 2) if v is not None and pd.notna(v) else None)
         family_stats['⭐ Watchlist'] = family_stats[display_group].astype(str).isin(watchlist_names(str(subset['category_id'].iloc[0]))).map(
             {True: '⭐', False: ''})
+        family_stats['Prezzo P25'] = family_stats['P25'].apply(lambda p:eur(p) if pd.notna(p) else 'N/D')
         family_stats['Prezzo']=family_stats['Prezzo'].apply(eur)
         family_stats['Prezzo minimo']=family_stats['Prezzo_min'].apply(eur)
         family_stats['Prezzo massimo']=family_stats['Prezzo_max'].apply(eur)
@@ -746,12 +773,12 @@ if section == '🏷️ Categorie':
         else:
             st.info('Non ci sono ancora modelli con almeno 5 vendite registrate negli ultimi 30 giorni.')
 
-        ranking=st.selectbox('Classifica', ['Più venduti ultimi 30 gg','Più venduti ultimi 7 gg','Più venduti in totale'],key='ebay_recent_ranking',label_visibility='collapsed')
-        ranking_col={'Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
+        ranking=st.selectbox('Classifica', ['🏆 Radar opportunità','Più venduti ultimi 30 gg','Più venduti ultimi 7 gg','Più venduti in totale'],key='ebay_recent_ranking',label_visibility='collapsed')
+        ranking_col={'🏆 Radar opportunità':'Indice opportunità','Più venduti ultimi 30 gg':'V30','Più venduti ultimi 7 gg':'V7','Più venduti in totale':'Venduti'}[ranking]
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
         if export_id == '183446':
-            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Acquisto massimo €', '⭐ Watchlist']
+            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist']
         else:
             cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
                     'Trend 30 gg', 'Prezzo', 'Acquisto massimo €', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
@@ -778,8 +805,15 @@ if section == '🏷️ Categorie':
         if st.checkbox('⭐ Mostra soltanto watchlist', key='watchlist_only'):
             family_stats = family_stats[family_stats['⭐ Watchlist'] == '⭐'].copy()
 
+        st.caption('P25 sui prodotti comparabili; almeno 5 vendite per l’acquisto prudente. Indice indicativo, non probabilità di vendita.')
+        def price_highlight(v):
+            try:
+                return 'background-color:#dbeafe;color:#10346c;font-size:19px;font-weight:800' if 80<=float(v)<=130 else ''
+            except (TypeError,ValueError):
+                return ''
+        styled_stats = family_stats.style.map(price_highlight,subset=['Acquisto massimo €','Acquisto prudente €'])
         state=st.dataframe(
-            family_stats, hide_index=True, width='stretch',
+            styled_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
