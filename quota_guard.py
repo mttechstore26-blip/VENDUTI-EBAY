@@ -123,4 +123,9 @@ for category_id, category_name, min_price in jobs:
         break
     remaining -= 1
 
+if failures == 0 and os.getenv("DISCORD_WEBHOOK_URL", "").strip():
+    # Alerts use existing SQLite sales; they consume no SoldComps quota.
+    subprocess.run([sys.executable, str(ROOT / "discord_alerts.py")],
+                   cwd=ROOT, env=os.environ.copy(), check=False)
+
 sys.exit(1 if failures else 0)
