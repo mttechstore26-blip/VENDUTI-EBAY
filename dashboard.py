@@ -322,42 +322,41 @@ if section == '🏷️ Categorie':
                     if candidates.empty:
                         st.info('Nessun annuncio trovato. Modifica la ricerca.')
                     else:
-                        if True:
-                            item_options = list(candidates['item_id'].astype(str))
-                            item_labels = {str(r.item_id): f"{r.item_id} · {str(r.title)[:90]} · {eur(r.sold_price)}"
-                                           for r in candidates.itertuples(index=False)}
-                            chosen_item = st.selectbox('1 · Scegli il prodotto', item_options,
-                                                       format_func=lambda v: item_labels.get(v,v))
-                            current = candidates[candidates['item_id'].astype(str).eq(chosen_item)].iloc[0]
-                            current_brand = str(current['Brand / Editore'])
-                            current_family = str(current['Famiglia / Serie'])
-                            current_model = str(current['Modello / Edizione'])
-                            st.caption(f"Attuale: {current_brand} → {current_family} → {current_model}")
-                            brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
-                            brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
-                                                        index=brands.index(current_brand)+1)
-                            brand_final = (st.text_input('Nome nuovo brand', placeholder='Es. Apple').strip()
-                                           if brand_choice == '➕ Nuovo brand' else brand_choice)
-                            known_families = sorted(set(subset.loc[subset['Brand / Editore'].astype(str).eq(brand_final),
-                                                                        'Famiglia / Serie'].dropna().astype(str)) | {current_family})
-                            family_choice = st.selectbox('3 · Sposta nella famiglia',
-                                                         ['➕ Nuova famiglia'] + known_families,
-                                                         index=known_families.index(current_family)+1)
-                            family_final = (st.text_input('Nome nuova famiglia', placeholder='Es. MacBook Pro').strip()
-                                            if family_choice == '➕ Nuova famiglia' else family_choice)
-                            model_final = st.text_input('4 · Modello / edizione', value=current_model,
-                                                        max_chars=180, help='Puoi precisare modello e anno se noti.')
-                            submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
-                            if submitted:
-                                if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
-                                    st.error('Compila brand, famiglia e modello.')
-                                else:
-                                    save_taxonomy_override(str(current['category_id']), chosen_item,
-                                                           brand_final.strip(), family_final.strip(), model_final.strip())
-                                    taxonomy_data.clear()
-                                    fetch.clear()
-                                    st.success('Prodotto spostato: la scelta è stata salvata.')
-                                    st.rerun()
+                        item_options = list(candidates['item_id'].astype(str))
+                        item_labels = {str(r.item_id): f"{r.item_id} · {str(r.title)[:90]} · {eur(r.sold_price)}"
+                                       for r in candidates.itertuples(index=False)}
+                        chosen_item = st.selectbox('1 · Scegli il prodotto', item_options,
+                                                   format_func=lambda v: item_labels.get(v,v))
+                        current = candidates[candidates['item_id'].astype(str).eq(chosen_item)].iloc[0]
+                        current_brand = str(current['Brand / Editore'])
+                        current_family = str(current['Famiglia / Serie'])
+                        current_model = str(current['Modello / Edizione'])
+                        st.caption(f"Attuale: {current_brand} → {current_family} → {current_model}")
+                        brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
+                        brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
+                                                    index=brands.index(current_brand)+1)
+                        brand_final = (st.text_input('Nome nuovo brand', placeholder='Es. Apple').strip()
+                                       if brand_choice == '➕ Nuovo brand' else brand_choice)
+                        known_families = sorted(set(subset.loc[subset['Brand / Editore'].astype(str).eq(brand_final),
+                                                                    'Famiglia / Serie'].dropna().astype(str)) | {current_family})
+                        family_choice = st.selectbox('3 · Sposta nella famiglia',
+                                                     ['➕ Nuova famiglia'] + known_families,
+                                                     index=known_families.index(current_family)+1)
+                        family_final = (st.text_input('Nome nuova famiglia', placeholder='Es. MacBook Pro').strip()
+                                        if family_choice == '➕ Nuova famiglia' else family_choice)
+                        model_final = st.text_input('4 · Modello / edizione', value=current_model,
+                                                    max_chars=180, key=f'taxonomy_model_{chosen_item}', help='Puoi precisare modello e anno se noti.')
+                        submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
+                        if submitted:
+                            if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
+                                st.error('Compila brand, famiglia e modello.')
+                            else:
+                                save_taxonomy_override(str(current['category_id']), chosen_item,
+                                                       brand_final.strip(), family_final.strip(), model_final.strip())
+                                taxonomy_data.clear()
+                                fetch.clear()
+                                st.success('Prodotto spostato: la scelta è stata salvata.')
+                                st.rerun()
                 elif password:
                     st.error('Password non corretta.')
         # Export completo, indipendente dalla selezione delle famiglie.
