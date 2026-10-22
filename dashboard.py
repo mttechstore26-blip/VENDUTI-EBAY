@@ -332,35 +332,41 @@ if section == '🏷️ Categorie':
                         current_family = str(current['Famiglia / Serie'])
                         current_model = str(current['Modello / Edizione'])
                         st.caption(f"Attuale: {current_brand} → {current_family} → {current_model}")
-                        brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
-                        brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
-                                                    index=brands.index(current_brand)+1)
-                        brand_final = (st.text_input('Nome nuovo brand', placeholder='Es. Apple').strip()
-                                       if brand_choice == '➕ Nuovo brand' else brand_choice)
-                        known_families = sorted(set(subset.loc[subset['Brand / Editore'].astype(str).eq(brand_final),
-                                                                    'Famiglia / Serie'].dropna().astype(str)) | {current_family})
-                        family_choice = st.selectbox('3 · Sposta nella famiglia',
-                                                     ['➕ Nuova famiglia'] + known_families,
-                                                     index=known_families.index(current_family)+1)
-                        family_final = (st.text_input('Nome nuova famiglia', placeholder='Es. MacBook Pro').strip()
-                                        if family_choice == '➕ Nuova famiglia' else family_choice)
-                        # MacBooks and several other categories are grouped by MODEL, not by family.
-                        # Picking a family alone would leave the listing in its old visible group.
-                        existing_models = sorted(set(subset.loc[
-                            subset['Brand / Editore'].astype(str).eq(brand_final)
-                            & subset['Famiglia / Serie'].astype(str).eq(family_final),
-                            'Modello / Edizione'].dropna().astype(str)) | {current_model})
-                        model_choice = st.selectbox(
-                            '4 · Gruppo modello di destinazione',
-                            ['➕ Scrivi un nuovo modello'] + existing_models,
-                            index=existing_models.index(current_model)+1,
-                            key=f'taxonomy_target_model_{chosen_item}',
-                            help='La classifica MacBook raggruppa per modello: scegli anche il modello di destinazione.')
-                        model_final = (st.text_input('Nome nuovo modello', placeholder='Es. MacBook Pro Intel 15" (2017)',
-                                                     max_chars=180, key=f'taxonomy_new_model_{chosen_item}').strip()
-                                       if model_choice == '➕ Scrivi un nuovo modello' else model_choice)
-                        if str(current['category_id']) in ('111422','175672','20667','38250','139971'):
-                            st.caption(f'📍 Risultato previsto nella classifica: {model_final or "Inserisci modello"}')
+                        model_grouped = str(current['category_id']) in ('111422','175672','20667','38250','139971')
+                        if model_grouped:
+                            # These dashboards rank by model: one destination is enough.
+                            existing = sorted(set(subset['Modello / Edizione'].dropna().astype(str)) | {current_model})
+                            destination = st.selectbox('2 · Sposta nel modello / gruppo',
+                                ['➕ Crea nuovo gruppo'] + existing,
+                                index=existing.index(current_model)+1,
+                                key=f'taxonomy_destination_{chosen_item}')
+                            model_final = (st.text_input('Nome del nuovo gruppo', max_chars=180,
+                                            key=f'taxonomy_new_destination_{chosen_item}').strip()
+                                           if destination == '➕ Crea nuovo gruppo' else destination)
+                            # Derive brand and family from an existing member of the target group.
+                            target = subset[subset['Modello / Edizione'].astype(str).eq(model_final)]
+                            if not target.empty:
+                                brand_final = str(target.iloc[0]['Brand / Editore'])
+                                family_final = str(target.iloc[0]['Famiglia / Serie'])
+                            else:
+                                brand_final, family_final = current_brand, current_family
+                            st.caption(f'📍 Destinazione: {model_final or "Inserisci il nome del gruppo"}')
+                        else:
+                            brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
+                            brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
+                                                        index=brands.index(current_brand)+1)
+                            brand_final = (st.text_input('Nome nuovo brand').strip()
+                                           if brand_choice == '➕ Nuovo brand' else brand_choice)
+                            known_families = sorted(set(subset.loc[
+                                subset['Brand / Editore'].astype(str).eq(brand_final),
+                                'Famiglia / Serie'].dropna().astype(str)) | {current_family})
+                            family_choice = st.selectbox('3 · Famiglia',
+                                ['➕ Nuova famiglia'] + known_families,
+                                index=known_families.index(current_family)+1)
+                            family_final = (st.text_input('Nome nuova famiglia').strip()
+                                            if family_choice == '➕ Nuova famiglia' else family_choice)
+                            model_final = st.text_input('4 · Modello / edizione',
+                                value=current_model, key=f'taxonomy_model_{chosen_item}')
                         submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
                         if submitted:
                             if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
