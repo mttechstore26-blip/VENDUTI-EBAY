@@ -781,7 +781,7 @@ if section == '🏷️ Categorie':
             cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist']
         else:
             cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
-                    'Trend 30 gg', 'Prezzo', 'Acquisto massimo €', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
+                    'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
 
         st.caption('💰 Acquisto massimo calcolato sulla mediana: 10–50 € → margine 25 €; 51–100 € → 30 €; oltre 100 € → 40 €. Nessuna commissione o spedizione. Un valore vuoto indica nessun acquisto compatibile con le soglie.')
@@ -811,7 +811,8 @@ if section == '🏷️ Categorie':
                 return 'background-color:#dbeafe;color:#10346c;font-size:19px;font-weight:800' if 80<=float(v)<=130 else ''
             except (TypeError,ValueError):
                 return ''
-        styled_stats = family_stats.style.map(price_highlight,subset=['Acquisto massimo €','Acquisto prudente €'])
+        highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in family_stats.columns]
+        styled_stats = family_stats.style.map(price_highlight, subset=highlight_cols) if highlight_cols else family_stats.style
         state=st.dataframe(
             styled_stats, hide_index=True, width='stretch',
             height=min(660, 60 + 42*len(family_stats)),
