@@ -130,9 +130,15 @@ def classify_camera(title):
     brand = next((b for b in ("Canon","Nikon","Sony","Panasonic","Fujifilm","Olympus","Pentax","Kodak","Sigma","GoPro","Samsung","Insta360","Apple") if b.casefold() in t), "Non identificato")
     if re.search(r"\b(?:solo\s+obiettivo|obiettivo\s+solo|lens\s+only|ricambi|for\s+parts|defekt|non\s+funzionante|guasta|guasto)\b", t):
         return brand, "Ricambi e accessori", "Prodotto da verificare", "Guasto / accessori"
+    if re.search(r"\\b(?:lotto\\s+(?:di\\s+)?(?:fotocamer|macchin)|più\\s+fotocamer|multiple\\s+cameras)\\b", t):
+        return brand, "Lotti misti", "Più fotocamere / lotto", "Lotto / non comparabile"
     model, family = "Modello da identificare", "Fotocamere digitali"
     for b, group, pattern, name in MODELS:
         if b.casefold() not in t and not (b == "Fujifilm" and re.search(r"\bfuji\b",t)):
+            continue
+        if group in ("IXUS", "PowerShot", "Coolpix") and not re.search(
+            r"\\b(?:ixus|elph|ixy|powershot|coolpix|cyber.shot|dsc[-\\s])\\b",t
+        ) and b in ("Canon", "Nikon"):
             continue
         if re.search(pattern, t, re.I):
             brand, family, model = b, group, name
@@ -142,7 +148,10 @@ def classify_camera(title):
     else:
         # Multiple distinct lens focal ranges in the seller title are a
         # stronger signal than a generic "kit" or a list of accessories.
-        lenses = set(re.findall(r"\b\d{2,3}\s*[-–]\s*\d{2,3}\s*(?:mm)?\b", t))
+        lenses = set(re.findall(r"\\b\\d{2,3}\\s*[-–]\\s*\\d{2,3}\\s*(?:mm)?\\b", t))
+        interchangeable = family in ("EOS", "EOS M", "Reflex", "NEX", "Alpha", "Nikon 1", "NX", "PEN", "K", "SD", "X")
+        if not interchangeable:
+            lenses = set()
         plural = bool(re.search(r"\b(?:due|2|tre|3|quattro|4)\s+(?:obiettiv\w*|lenti|lens\w*)\b|\b(?:obiettiv\w*|lenti|lenses)\s*[x×]\s*[234]\b", t))
         if plural or len(lenses) >= 2:
             state = "Kit con più obiettivi"
