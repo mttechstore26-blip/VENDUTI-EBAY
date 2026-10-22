@@ -247,6 +247,9 @@ if section == '🏷️ Categorie':
         for item_id, model_name in APPLE_MODEL_CORRECTIONS.items():
             mask = raw['category_id'].astype(str).isin(['111422', '175672']) & raw['item_id'].astype(str).eq(item_id)
             raw.loc[mask, ['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = ['Apple', 'MacBook Pro', model_name]
+        # Explicit per-listing Air correction, including a group not previously present.
+        air_2020 = raw['category_id'].astype(str).isin(['111422', '175672']) & raw['item_id'].astype(str).eq('307175793216')
+        raw.loc[air_2020, ['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = ['Apple', 'MacBook Air', 'MacBook Air 13" (2020)']
         # Database overrides always take precedence over hardcoded corrections.
         overrides = manual_taxonomy_rows()
         for idx, row in raw.iterrows():
