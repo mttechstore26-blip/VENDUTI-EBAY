@@ -18,6 +18,45 @@ from monitor_taxonomy import classify_monitor
 from location_flags import flag_for_location
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
+
+def max_buy_price(sale_price):
+    """Highest viable purchase price with the user's minimum margins."""
+    try:
+        p = float(sale_price)
+    except (TypeError, ValueError):
+        return None
+    candidates = []
+    for minimum, maximum, desired in ((10, 50, 25), (51, 100, 30), (101, float('inf'), 40)):
+        ceiling = min(maximum, p - desired)
+        if ceiling >= minimum:
+            candidates.append((ceiling, desired))
+    return max(candidates)[0] if candidates else None
+
+def watchlist_db():
+    with sqlite3.connect(DB, timeout=20) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS model_watchlist (
+            category_id TEXT NOT NULL, model_name TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(category_id,model_name))""")
+
+def watchlist_names(category_id):
+    watchlist_db()
+    with sqlite3.connect(DB, timeout=20) as conn:
+        return {row[0] for row in conn.execute(
+            "SELECT model_name FROM model_watchlist WHERE category_id=?",
+            (str(category_id),)).fetchall()}
+
+def watchlist_change(category_id, model_name, add):
+    watchlist_db()
+    with sqlite3.connect(DB, timeout=20) as conn:
+        if add:
+            conn.execute("INSERT OR IGNORE INTO model_watchlist(category_id,model_name) VALUES(?,?)",
+                         (str(category_id),str(model_name)))
+        else:
+            conn.execute("DELETE FROM model_watchlist WHERE category_id=? AND model_name=?",
+                         (str(category_id),str(model_name)))
+
+
 ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971','111422','175672','80053')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
 DB = (Path(__file__).resolve().parent / os.getenv('DB_PATH', './data/ebay_sold.db')).resolve()
@@ -658,6 +697,11 @@ if section == '🏷️ Categorie':
             .reset_index())
         display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
+        family_stats['Acquisto massimo €'] = family_stats['Prezzo'].apply(max_buy_price)
+        family_stats['Acquisto massimo €'] = family_stats['Acquisto massimo €'].apply(
+            lambda v: round(v, 2) if v is not None and pd.notna(v) else None)
+        family_stats['⭐ Watchlist'] = family_stats[display_group].astype(str).isin(watchlist_names(str(subset['category_id'].iloc[0]))).map(
+            {True: '⭐', False: ''})
         family_stats['Prezzo']=family_stats['Prezzo'].apply(eur)
         family_stats['Prezzo minimo']=family_stats['Prezzo_min'].apply(eur)
         family_stats['Prezzo massimo']=family_stats['Prezzo_max'].apply(eur)
@@ -707,11 +751,32 @@ if section == '🏷️ Categorie':
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
         if export_id == '183446':
-            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo']
+            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Acquisto massimo €', '⭐ Watchlist']
         else:
             cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
-                    'Trend 30 gg', 'Prezzo', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
+                    'Trend 30 gg', 'Prezzo', 'Acquisto massimo €', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
+
+        st.caption('💰 Acquisto massimo calcolato sulla mediana: 10–50 € → margine 25 €; 51–100 € → 30 €; oltre 100 € → 40 €. Nessuna commissione o spedizione. Un valore vuoto indica nessun acquisto compatibile con le soglie.')
+        with st.expander('⭐ La mia watchlist', expanded=False):
+            saved = watchlist_names(export_id)
+            st.write('Modelli salvati:', ', '.join(sorted(saved)) if saved else 'Nessuno')
+            editor_pw = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
+            from hmac import compare_digest
+            typed_pw = st.text_input('Password editor per modificare la watchlist', type='password', key='watchlist_password')
+            if editor_pw and typed_pw and compare_digest(typed_pw, editor_pw):
+                chosen_watch = st.selectbox('Modello / famiglia', family_stats[display_group].astype(str).tolist(), key='watchlist_model')
+                wl_c1, wl_c2 = st.columns(2)
+                if wl_c1.button('⭐ Aggiungi alla watchlist', key='watchlist_add'):
+                    watchlist_change(export_id, chosen_watch, True)
+                    st.rerun()
+                if wl_c2.button('Rimuovi dalla watchlist', key='watchlist_remove'):
+                    watchlist_change(export_id, chosen_watch, False)
+                    st.rerun()
+            elif typed_pw:
+                st.error('Password editor non valida.')
+        if st.checkbox('⭐ Mostra soltanto watchlist', key='watchlist_only'):
+            family_stats = family_stats[family_stats['⭐ Watchlist'] == '⭐'].copy()
 
         state=st.dataframe(
             family_stats, hide_index=True, width='stretch',
