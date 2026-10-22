@@ -50,6 +50,35 @@ if not DB.is_file():
     st.warning('Database non trovato. Verifica DB_PATH nel file .env.')
     st.stop()
 
+# Manual taxonomy corrections live in SQLite, not in git-tracked code.
+APPLE_MODEL_CORRECTIONS = {
+    '227558428111': 'MacBook Pro Intel 15" (2015)',
+    '880018340440': 'MacBook Pro Intel 15" (2017)',
+    '267784952522': 'MacBook Pro Intel 15" (2014)',
+    '137728242591': 'MacBook Pro Intel 15" (2017)',
+}
+
+def manual_taxonomy_rows():
+    with connect() as conn:
+        exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='taxonomy_overrides'").fetchone()
+        if not exists:
+            return {}
+        return {(str(a), str(b)): (brand, family, model) for a,b,brand,family,model in
+                conn.execute("SELECT category_id,item_id,brand,family,model FROM taxonomy_overrides")}
+
+def save_taxonomy_override(category_id, item_id, brand, family, model):
+    with sqlite3.connect(DB, timeout=15) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS taxonomy_overrides (
+            category_id TEXT NOT NULL, item_id TEXT NOT NULL,
+            brand TEXT NOT NULL, family TEXT NOT NULL, model TEXT NOT NULL,
+            PRIMARY KEY(category_id,item_id))""")
+        conn.execute("""INSERT INTO taxonomy_overrides(category_id,item_id,brand,family,model)
+                        VALUES (?,?,?,?,?)
+                        ON CONFLICT(category_id,item_id) DO UPDATE SET
+                        brand=excluded.brand,family=excluded.family,model=excluded.model""",
+                     (category_id,item_id,brand,family,model))
+        conn.commit()
+
 def connect():
     uri = f'file:{DB.as_posix()}?mode=ro'
     conn = sqlite3.connect(uri, uri=True, timeout=10)
@@ -215,6 +244,16 @@ if section == '🏷️ Categorie':
             else:
                 parsed.append((*classify(r.category_id, r.title), 'Non applicabile'))
         raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione','Stato prodotto']] = pd.DataFrame(parsed,index=raw.index)
+        apple_mask = raw['category_id'].astype(str).eq('111422')
+        for item_id, model_name in APPLE_MODEL_CORRECTIONS.items():
+            mask = apple_mask & raw['item_id'].astype(str).eq(item_id)
+            raw.loc[mask, ['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = ['Apple', 'MacBook Pro', model_name]
+        # Database overrides always take precedence over hardcoded corrections.
+        overrides = manual_taxonomy_rows()
+        for idx, row in raw.iterrows():
+            override = overrides.get((str(row['category_id']), str(row['item_id'])))
+            if override:
+                raw.loc[idx, ['Brand / Editore','Famiglia / Serie','Modello / Edizione']] = list(override)
         # Promote repeated identifiable models to their own clickable family.
         # Keep the source family as a grouping key: comic issue 1 in one series
         # must never be mixed with issue 1 in another series.
@@ -263,6 +302,36 @@ if section == '🏷️ Categorie':
         if subset.empty:
             st.info('Nessun prodotto corrisponde ai filtri della categoria.')
             st.stop()
+        with st.expander('✏️ Sposta manualmente un prodotto tra brand / famiglie / modelli'):
+            editor_password = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
+            if not editor_password:
+                st.info('Editor protetto non configurato. Imposta EBAY_EDITOR_PASSWORD nel file .env della VPS; la dashboard rimane pubblica.')
+            else:
+                from hmac import compare_digest
+                password = st.text_input('Password editor', type='password', key='taxonomy_editor_password')
+                if compare_digest(password, editor_password):
+                    options = {
+                        str(r.item_id): f"{str(r.item_id)} · {str(r.title)[:85]}"
+                        for r in subset.itertuples(index=False)
+                    }
+                    chosen_item = st.selectbox('Annuncio da spostare', list(options), format_func=lambda v: options[v], key='edit_taxonomy_item')
+                    current = subset[subset['item_id'].astype(str) == chosen_item].iloc[0]
+                    with st.form('manual_taxonomy_form'):
+                        brand_value = st.text_input('Brand / Editore', value=str(current['Brand / Editore']), max_chars=100)
+                        family_value = st.text_input('Famiglia / Serie', value=str(current['Famiglia / Serie']), max_chars=150)
+                        model_value = st.text_input('Modello / Edizione', value=str(current['Modello / Edizione']), max_chars=180)
+                        submitted = st.form_submit_button('💾 Salva e aggiorna classifiche')
+                        if submitted:
+                            if not all(v.strip() for v in (brand_value,family_value,model_value)):
+                                st.error('Compila brand, famiglia e modello.')
+                            else:
+                                save_taxonomy_override(str(current['category_id']), chosen_item,
+                                                       brand_value.strip(), family_value.strip(), model_value.strip())
+                                taxonomy_data.clear()
+                                fetch.clear()
+                                st.rerun()
+                elif password:
+                    st.warning('Password editor non valida.')
         # Export completo, indipendente dalla selezione delle famiglie.
         # Usa i dati SQLite gia raccolti: nessuna richiesta SoldComps.
         export_rows = subset.sort_values('ended_at', ascending=False).copy()
