@@ -841,7 +841,7 @@ if section == '🏷️ Categorie':
                 return ''
         # Default: six decision-driving columns; retain all other columns
         # in an optional detail view without changing the selected row IDs.
-        compact_cols = [display_group, 'Venduti 30 gg', 'Prezzo mediano',
+        compact_cols = [display_group, 'Venduti', 'Prezzo mediano',
                         'Prezzo prudente (P25)', 'Acquisto massimo €',
                         'Acquisto prudente €']
         with st.expander('📊 Mostra statistiche complete', expanded=False):
@@ -862,7 +862,7 @@ if section == '🏷️ Categorie':
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
             column_config={display_group:st.column_config.TextColumn(display_group,width='large',help='Modello riconosciuto dagli annunci eBay'),
-                           'Venduti':st.column_config.NumberColumn('Venduti'),
+                           'Venduti':st.column_config.NumberColumn('Venduti totali',help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
                            'Prezzo mediano':st.column_config.TextColumn('Mediana',width='small',help='Mediana di tutte le vendite registrate nel gruppo.'),
