@@ -301,36 +301,65 @@ if section == '🏷️ Categorie':
         if subset.empty:
             st.info('Nessun prodotto corrisponde ai filtri della categoria.')
             st.stop()
-        with st.expander('✏️ Sposta manualmente un prodotto tra brand / famiglie / modelli'):
+        with st.expander('✏️ Organizza prodotti · spostamento rapido', expanded=False):
+            st.caption('Trova un annuncio, seleziona una famiglia esistente e salva. Le modifiche sono permanenti e aggiornano le classifiche.')
             editor_password = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
             if not editor_password:
-                st.info('Editor protetto non configurato. Imposta EBAY_EDITOR_PASSWORD nel file .env della VPS; la dashboard rimane pubblica.')
+                st.warning('Editor non configurato: imposta EBAY_EDITOR_PASSWORD nel file .env della VPS.')
             else:
                 from hmac import compare_digest
-                password = st.text_input('Password editor', type='password', key='taxonomy_editor_password')
-                if compare_digest(password, editor_password):
-                    options = {
-                        str(r.item_id): f"{str(r.item_id)} · {str(r.title)[:85]}"
-                        for r in subset.itertuples(index=False)
-                    }
-                    chosen_item = st.selectbox('Annuncio da spostare', list(options), format_func=lambda v: options[v], key='edit_taxonomy_item')
-                    current = subset[subset['item_id'].astype(str) == chosen_item].iloc[0]
-                    with st.form('manual_taxonomy_form'):
-                        brand_value = st.text_input('Brand / Editore', value=str(current['Brand / Editore']), max_chars=100)
-                        family_value = st.text_input('Famiglia / Serie', value=str(current['Famiglia / Serie']), max_chars=150)
-                        model_value = st.text_input('Modello / Edizione', value=str(current['Modello / Edizione']), max_chars=180)
-                        submitted = st.form_submit_button('💾 Salva e aggiorna classifiche')
-                        if submitted:
-                            if not all(v.strip() for v in (brand_value,family_value,model_value)):
-                                st.error('Compila brand, famiglia e modello.')
-                            else:
-                                save_taxonomy_override(str(current['category_id']), chosen_item,
-                                                       brand_value.strip(), family_value.strip(), model_value.strip())
-                                taxonomy_data.clear()
-                                fetch.clear()
-                                st.rerun()
+                password = st.text_input('🔒 Password editor', type='password', key='taxonomy_editor_password')
+                if compare_digest(password, editor_password) and bool(password):
+                    lookup = st.text_input('🔍 Cerca per ID o titolo', placeholder='Es. 227558428111 oppure MacBook Pro', key='taxonomy_lookup')
+                    candidates = subset.copy()
+                    if lookup.strip():
+                        term = lookup.strip().casefold()
+                        candidates = candidates[
+                            candidates['item_id'].astype(str).str.contains(term, case=False, regex=False)
+                            | candidates['title'].fillna('').astype(str).str.contains(term, case=False, regex=False)
+                        ]
+                    candidates = candidates.sort_values('ended_at', ascending=False).head(150)
+                    if candidates.empty:
+                        st.info('Nessun annuncio trovato. Modifica la ricerca.')
+                    else:
+                        with st.form('taxonomy_quick_move'):
+                            item_options = list(candidates['item_id'].astype(str))
+                            item_labels = {str(r.item_id): f"{r.item_id} · {str(r.title)[:90]} · {eur(r.sold_price)}"
+                                           for r in candidates.itertuples(index=False)}
+                            chosen_item = st.selectbox('1 · Scegli il prodotto', item_options,
+                                                       format_func=lambda v: item_labels.get(v,v))
+                            current = candidates[candidates['item_id'].astype(str).eq(chosen_item)].iloc[0]
+                            current_brand = str(current['Brand / Editore'])
+                            current_family = str(current['Famiglia / Serie'])
+                            current_model = str(current['Modello / Edizione'])
+                            st.caption(f"Attuale: {current_brand} → {current_family} → {current_model}")
+                            brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
+                            brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
+                                                        index=brands.index(current_brand)+1)
+                            brand_final = (st.text_input('Nome nuovo brand', placeholder='Es. Apple').strip()
+                                           if brand_choice == '➕ Nuovo brand' else brand_choice)
+                            known_families = sorted(set(subset.loc[subset['Brand / Editore'].astype(str).eq(brand_final),
+                                                                        'Famiglia / Serie'].dropna().astype(str)) | {current_family})
+                            family_choice = st.selectbox('3 · Sposta nella famiglia',
+                                                         ['➕ Nuova famiglia'] + known_families,
+                                                         index=known_families.index(current_family)+1)
+                            family_final = (st.text_input('Nome nuova famiglia', placeholder='Es. MacBook Pro').strip()
+                                            if family_choice == '➕ Nuova famiglia' else family_choice)
+                            model_final = st.text_input('4 · Modello / edizione', value=current_model,
+                                                        max_chars=180, help='Puoi precisare modello e anno se noti.')
+                            submitted = st.form_submit_button('💾 Sposta prodotto e aggiorna classifiche', type='primary')
+                            if submitted:
+                                if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
+                                    st.error('Compila brand, famiglia e modello.')
+                                else:
+                                    save_taxonomy_override(str(current['category_id']), chosen_item,
+                                                           brand_final.strip(), family_final.strip(), model_final.strip())
+                                    taxonomy_data.clear()
+                                    fetch.clear()
+                                    st.success('Prodotto spostato: la scelta è stata salvata.')
+                                    st.rerun()
                 elif password:
-                    st.warning('Password editor non valida.')
+                    st.error('Password non corretta.')
         # Export completo, indipendente dalla selezione delle famiglie.
         # Usa i dati SQLite gia raccolti: nessuna richiesta SoldComps.
         export_rows = subset.sort_values('ended_at', ascending=False).copy()
