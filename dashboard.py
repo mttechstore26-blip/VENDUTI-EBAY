@@ -1,5 +1,6 @@
 """Venduti eBay: fast SQLite-backed Streamlit dashboard, category-wide collection unchanged."""
 import os
+import math
 import sqlite3
 from html import escape
 from urllib.parse import urlparse
@@ -24,6 +25,8 @@ def max_buy_price(sale_price):
     try:
         p = float(sale_price)
     except (TypeError, ValueError):
+        return None
+    if not math.isfinite(p) or p <= 0:
         return None
     candidates = []
     for minimum, maximum, desired in ((10, 50, 25), (51, 100, 30), (101, float('inf'), 40)):
@@ -713,7 +716,7 @@ if section == '🏷️ Categorie':
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Acquisto massimo €'] = family_stats['Mediana_comparabili'].apply(max_buy_price)
         family_stats['Acquisto prudente €'] = family_stats['P25'].apply(max_buy_price)
-        family_stats.loc[family_stats['Comparabili'] < 5,'Acquisto prudente €'] = float('nan')
+        family_stats.loc[family_stats['Comparabili'] < 5, ['Acquisto massimo €','Acquisto prudente €']] = float('nan')
         family_stats['Rendimento %'] = ((family_stats['P25']-family_stats['Acquisto prudente €'])
             /family_stats['Acquisto prudente €']*100).where(family_stats['Acquisto prudente €']>0).round(1)
         family_stats['Affidabilità'] = family_stats['Comparabili'].apply(
@@ -724,8 +727,8 @@ if section == '🏷️ Categorie':
             +20*family_stats['Comparabili'].clip(upper=15)/15
         ).round().astype(int)
         family_stats.loc[family_stats['Comparabili']<5,'Indice opportunità']=0
-        family_stats['Acquisto massimo €'] = family_stats['Acquisto massimo €'].apply(
-            lambda v: round(v, 2) if v is not None and pd.notna(v) else None)
+        for price_column in ('Acquisto massimo €','Acquisto prudente €'):
+            family_stats[price_column] = pd.to_numeric(family_stats[price_column],errors='coerce').replace([float('inf'),-float('inf')],float('nan')).round(2)
         family_stats['⭐ Watchlist'] = family_stats[display_group].astype(str).isin(watchlist_names(str(subset['category_id'].iloc[0]))).map(
             {True: '⭐', False: ''})
         family_stats['Prezzo P25'] = family_stats['P25'].apply(lambda p:eur(p) if pd.notna(p) else 'N/D')
@@ -809,7 +812,10 @@ if section == '🏷️ Categorie':
             column_config={display_group:st.column_config.TextColumn(display_group,width='large'),
                            'Venduti':st.column_config.NumberColumn('Venduti'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
-                           'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg')})
+                           'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
+                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto massimo €',format='%.2f €'),
+                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto prudente €',format='%.2f €'),
+                           'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
             saved = watchlist_names(export_id)
             st.write('Modelli salvati:', ', '.join(sorted(saved)) if saved else 'Nessuno')
