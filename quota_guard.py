@@ -1,6 +1,6 @@
 """Quota-safe category-wide SoldComps scheduler.
 
-Twelve monitored categories every six hours (00,06,12,18).
+Thirteen monitored categories every six hours (00,06,12,18).
 Respect monthly reserve and refuse extra-credit API charges.
 """
 import os
@@ -56,6 +56,7 @@ categories = [
     ("111422", "PORTATILI APPLE 150-300 🇮🇹", "150"),
     ("175672", "PORTATILI 150-300", "150"),
     ("80053", "Monitor usati Italia 100-300", "100"),
+    ("31388", "Fotocamere digitali usate Italia 130-300", "130"),
 ]
 slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
@@ -106,14 +107,14 @@ for category_id, category_name, min_price in jobs:
     env.pop("EBAY_CONDITION_ID", None)
     env.pop("MAX_PRICE", None)
     env.pop("EBAY_ITEM_LOCATION", None)
-    if category_id in ("20667", "38250", "139971", "111422", "175672", "80053"):
+    if category_id in ("20667", "38250", "139971", "111422", "175672", "80053", "31388"):
         env["EBAY_CONDITION_ID"] = "3000"
-    if category_id in ("63", "111422", "175672", "80053"):
+    if category_id in ("63", "111422", "175672", "80053", "31388"):
         # For ebay.it, domestic restricts item location to Italy.
         env["EBAY_ITEM_LOCATION"] = "domestic"
     if category_id == "175672":
         env["MAX_PRICE"] = "300"
-    if category_id in ("38250", "80053", "111422"):
+    if category_id in ("38250", "80053", "111422", "31388"):
         env["MAX_PRICE"] = "300"
     result = subprocess.run([sys.executable, str(ROOT / "collector.py")],
                             cwd=ROOT, env=env, check=False)
