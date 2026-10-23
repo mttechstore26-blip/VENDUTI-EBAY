@@ -71,7 +71,7 @@ def run():
                 "SELECT category_id,model_name FROM model_watchlist")}
         grouped = {}
         for cat, sid, title, price, ended, first_seen, location in data:
-            if str(cat) == '139971' and (float(price or 0) < 300 or not is_eu_location(location)):
+            if (str(cat) == '139971' and (float(price or 0) < 300 or not is_eu_location(location))) or (str(cat) == '171485' and (not 100 <= float(price or 0) <= 250 or not is_eu_location(location))):
                 continue
             model = classify_model(cat, title or "")
             if not model:
