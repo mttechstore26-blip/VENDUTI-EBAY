@@ -20,6 +20,19 @@ COUNTRIES = [
  ("🇮🇪","Irlanda",r"\b(?:ireland|irlanda)\b"),
  ("🇸🇪","Svezia",r"\b(?:sweden|svezia|schweden)\b"),
  ("🇩🇰","Danimarca",r"\b(?:denmark|danimarca|dänemark)\b"),
+ ("🇬🇷","Grecia",r"\\b(?:grecia|greece|hellas|ellada|griechenland|grèce)\\b"),
+ ("🇧🇬","Bulgaria",r"\\b(?:bulgaria|bulgarie)\\b"),
+ ("🇭🇷","Croazia",r"\\b(?:croatia|croazia|hrvatska|kroatien)\\b"),
+ ("🇨🇾","Cipro",r"\\b(?:cyprus|cipro|kypros|zypern)\\b"),
+ ("🇪🇪","Estonia",r"\\b(?:estonia|estland|eesti)\\b"),
+ ("🇭🇺","Ungheria",r"\\b(?:hungary|ungheria|magyarorszag|ungarn)\\b"),
+ ("🇱🇻","Lettonia",r"\\b(?:latvia|lettonia|latvija|lettland)\\b"),
+ ("🇱🇹","Lituania",r"\\b(?:lithuania|lituania|lietuva|litauen)\\b"),
+ ("🇱🇺","Lussemburgo",r"\\b(?:luxembourg|lussemburgo|luxemburg)\\b"),
+ ("🇲🇹","Malta",r"\\bmalta\\b"),
+ ("🇷🇴","Romania",r"\\b(?:romania|roumanie|rumania|rumänien)\\b"),
+ ("🇸🇰","Slovacchia",r"\\b(?:slovakia|slovacchia|slovensko|slowakei)\\b"),
+ ("🇸🇮","Slovenia",r"\\b(?:slovenia|slovenija|slowenien)\\b"),
  ("🇳🇴","Norvegia",r"\b(?:norway|norvegia|norwegen)\b"),
  ("🇫🇮","Finlandia",r"\b(?:finland|finlandia)\b"),
  ("🇨🇦","Canada",r"\b(?:canada|canadà)\b"),
@@ -29,9 +42,9 @@ COUNTRIES = [
 ]
 def flag_for_location(location):
     if location is None or str(location).strip().lower() in ("","none","nan","null"):
-        return "🇮🇹","Italia (predefinita: località non disponibile)"
+        return "🏳️","Località non disponibile"
     location=str(location)
     for flag,country,pattern in COUNTRIES:
         if re.search(pattern,location,re.I):
             return flag, f"{country} · {location}"
-    return "🇮🇹", f"Italia (predefinita: Paese non identificato) · {location}"
+    return "🏳️", f"Paese non identificato · {location}"
