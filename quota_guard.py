@@ -56,7 +56,7 @@ categories = [
     ("111422", "PORTATILI APPLE 150-300 🇮🇹", "150"),
     ("175672", "PORTATILI 150-300", "150"),
     ("80053", "Monitor usati Italia 100-300", "100"),
-    ("31388", "Fotocamere digitali usate Italia 130-300", "130"),
+    ("31388", "Fotocamere digitali usate 130-300 🇮🇹", "130"),
 ]
 slots = {hour_slot: categories for hour_slot in (0, 6, 12, 18)}
 jobs = slots.get(hour, [])
