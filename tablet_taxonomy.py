@@ -250,7 +250,10 @@ def _configuration(text, model, status):
         model += " · " + values[-1]
     if _hit(text, r"\b(?:5g|4g|lte|cellular|sim|wi[\s-]?fi\s*\+\s*cellular)\b"):
         model += " · Cellular"
-    elif _hit(text, r"\bwi[\s-]?fi(?:\s*only)?\b"):
+    elif _hit(text, r"\bwi[\s-]?fi(?:\s*only)?\b") and not model.startswith(
+            ("Kindle ", "Kobo ", "PocketBook ", "BOOX ", "reMarkable ")):
+        # Wi-Fi is standard on these e-readers: do not split identical models
+        # just because one seller included Wi-Fi in the title.
         model += " · Wi-Fi"
     return model
 
