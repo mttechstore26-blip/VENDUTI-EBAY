@@ -50,6 +50,25 @@ class TabletTaxonomyTests(unittest.TestCase):
         self.check("Microsoft Surface Go 3 128GB", "Microsoft", "Surface Go 3")
         self.check("Xiaomi Redmi Pad SE", "Xiaomi", "Redmi Pad SE")
 
+    def test_models_seen_in_real_sold_export(self):
+        self.check("Tolino vision color 32GB", "Tolino", "Tolino Vision Color")
+        self.check("Samsung Galaxy Tab A11 SM-X130 64GB", "Samsung", "Galaxy Tab A11")
+        self.check("Samsung Galaxy Tab Active 3 SM-T575", "Samsung", "Active3")
+        self.check("BOOX Go 7 B/N 64GB", "BOOX", "BOOX Go 7")
+        self.check("BOOX Go Color 7 Gen2", "BOOX", "Gen II")
+        self.check("BOOX Palma2", "BOOX", "Palma 2")
+        self.check("Kobo Libra H20 N783", "Kobo", "Libra H2O")
+        self.check("Apple iPad Pro 1. Gen 64 GB 11 pollici", "Apple", 'iPad Pro 11" 1ª gen.')
+        self.check("Apple iPad Air 5. Gen 64GB", "Apple", "iPad Air 5ª gen.")
+        self.check("Microsoft Surface Pro 7+ Plus 128GB", "Microsoft", "Surface Pro 7+")
+        self.check("DOOGEE T30 PRO Tablet", "DOOGEE", "T30 Pro")
+        self.check("i.Safe IS930.1 tablet robusto", "i.safe", "IS930.1")
+        self.check("Xiaomi Pad 6 128GB WLAN + Pen 2nd Gen + Custodia", "Xiaomi", "Pad 6")
+        self.assertFalse(classify_tablet("Microsoft Surface Go 3 Tablet 128GB")[3].startswith("⚠️"))
+        self.assertFalse(classify_tablet("Xiaomi Pad 6 128GB WLAN + Pen + Custodia")[3].startswith("⚠️"))
+        self.check("HP EliteBook 830 G8 laptop", "Non identificato", "da identificare", "fuori categoria")
+        self.check("Kindle 11. Gen Signature Edition", "Amazon", "da verificare", "ambiguo")
+
     def test_flags_and_safe_unknowns(self):
         self.check("Kobo Clara BW Custodia", "Kobo", "Clara BW", "Accessorio")
         self.check("iPad 10 64GB MDM bloccato", "Apple", "iPad 10ª gen.", "bloccato")
