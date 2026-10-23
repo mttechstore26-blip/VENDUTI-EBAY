@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import requests
 from dotenv import load_dotenv
+from eu_locations import is_eu_location
 
 load_dotenv()
 API = 'https://api.sold-comps.com/v1/scrape/category'
@@ -105,6 +106,8 @@ def run():
             items = payload.get('items', [])
             items_seen += len(items)
             for item in items:
+                if category_id == '139971' and not is_eu_location(item.get('itemLocation')):
+                    continue
                 price = number(item.get('soldPrice'))
                 if price is None or price < float(os.getenv('MIN_PRICE', '70')):
                     continue
@@ -116,13 +119,14 @@ def run():
                 now = datetime.now(timezone.utc).isoformat()
                 cur = conn.execute('''INSERT OR IGNORE INTO sales
                     (site,item_id,title,url,image,ended_at,sold_price,currency,shipping_price,total_price,
-                    condition,seller,buying_format,best_offer_accepted,scraped_at,first_seen,category_id)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                    condition,seller,buying_format,best_offer_accepted,scraped_at,first_seen,category_id,item_location)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                     (site,item_id,item.get('title'),item.get('url'),item.get('thumbnailUrl'),
                     item.get('endedAt'),number(item.get('soldPrice')),item.get('soldCurrency'),
                     number(item.get('shippingPrice')),number(item.get('totalPrice')),item.get('condition'),
                     item.get('sellerUsername'),item.get('buyingFormat'),
-                    int(bool(item.get('bestOfferAccepted'))),item.get('scrapedAt'),now,category_id))
+                    int(bool(item.get('bestOfferAccepted'))),item.get('scrapedAt'),now,category_id,
+                    str(item.get('itemLocation') or '')))
                 if cur.rowcount:
                     inserted += 1
                     # The initial ingestion is a baseline; do not flood Telegram with historical data.
