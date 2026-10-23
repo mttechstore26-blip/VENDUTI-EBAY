@@ -11,7 +11,7 @@ from eu_locations import is_eu_location
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
-STATE = ROOT / "data/console_300_eu_aug2026.state"
+STATE = ROOT / "data/console_300_eu_aug2026_v2.state"
 CUTOFF = "2026-08-01"
 RESERVE = 10
 
@@ -50,7 +50,6 @@ def main():
     items = payload.get("items", [])
     if items and not any(i.get("endedAt") for i in items):
         sys.exit("Date assenti: pagina invariata")
-    older = any(str(i.get("endedAt") or "")[:10] < CUTOFF for i in items if i.get("endedAt"))
     db = connect()
     db.execute("""INSERT INTO categories(category_id,name)
         VALUES('139971','CONSOLE 300+ 🇪🇺')
@@ -78,7 +77,9 @@ def main():
         inserted += int(cursor.rowcount > 0)
     db.commit()
     db.close()
-    complete = older or not payload.get("hasNextPage") or not items
+    # Results can mix sale dates within a page: an older item does not prove
+    # all subsequent pages are older. Follow API pagination to exhaustion.
+    complete = not payload.get("hasNextPage", False) or not items
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text("COMPLETE" if complete else str(page + 1))
     print(f"Pagina {page}: {len(items)} risultati, {inserted} console UE aggiunte; "
