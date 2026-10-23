@@ -25,7 +25,7 @@ KOBO = (
     (r"\belipsa\s*2e\b|\bn605\b", "Elipsa", "Kobo Elipsa 2E"),
     (r"\bclara\s*2e\b|\bn506\b", "Clara", "Kobo Clara 2E"),
     (r"\blibra\s*2\b|\bn418\b", "Libra", "Kobo Libra 2"),
-    (r"\blibra\s*h2o\b|\bn873\b", "Libra", "Kobo Libra H2O"),
+    (r"\blibra\s*h[2z0]o\b|\bn873\b|\bn783\b", "Libra", "Kobo Libra H2O"),
     (r"\belipsa\b|\bn604\b", "Elipsa", "Kobo Elipsa"),
     (r"\bsage\b|\bn778k?\b", "Sage", "Kobo Sage"),
     (r"\bforma\b|\bn782\b", "Forma", "Kobo Forma"),
@@ -63,10 +63,11 @@ BOOX = (
     (r"\bnote\s*air\s*3\b", "Note Air", "BOOX Note Air 3"),
     (r"\bnote\s*air\s*2\s*plus\b", "Note Air", "BOOX Note Air 2 Plus"),
     (r"\bnote\s*air\s*2\b", "Note Air", "BOOX Note Air 2"),
-    (r"\bgo\s*color\s*7\s*gen\s*ii\b|\bgo\s*color\s*7\s*2\b", "Go", "BOOX Go Color 7 Gen II"),
+    (r"\bgo\s*color\s*7\s*(?:gen\s*(?:ii|2)|gen2)\b|\bgo\s*color\s*7\s*2\b", "Go", "BOOX Go Color 7 Gen II"),
     (r"\bgo\s*color\s*7\b", "Go", "BOOX Go Color 7"),
     (r"\bgo\s*10\.3\b", "Go", "BOOX Go 10.3"),
-    (r"\bpalma\s*2\b", "Palma", "BOOX Palma 2"),
+    (r"\bgo\s*7\b", "Go", "BOOX Go 7"),
+    (r"\bpalma\s*2\b|\bpalma2\b", "Palma", "BOOX Palma 2"),
     (r"\bpalma\b", "Palma", "BOOX Palma"),
     (r"\btab\s*ultra\s*c\s*pro\b", "Tab", "BOOX Tab Ultra C Pro"),
     (r"\btab\s*ultra\s*c\b", "Tab", "BOOX Tab Ultra C"),
@@ -80,6 +81,8 @@ BOOX = (
 )
 
 SAMSUNG = (
+    (r"\b(?:galaxy\s*)?tab\s*active\s*3\b|\bsm[- ]?t575\b", "Galaxy Tab Active", "Samsung Galaxy Tab Active3"),
+    (r"\b(?:galaxy\s*)?tab\s*a11\b|\bsm[- ]?x130\b", "Galaxy Tab A", "Samsung Galaxy Tab A11"),
     (r"\b(?:galaxy\s*)?tab\s*s10\s*ultra\b", "Galaxy Tab S", "Samsung Galaxy Tab S10 Ultra"),
     (r"\b(?:galaxy\s*)?tab\s*s10\s*fe\s*\+", "Galaxy Tab S FE", "Samsung Galaxy Tab S10 FE+"),
     (r"\b(?:galaxy\s*)?tab\s*s10\s*fe\b", "Galaxy Tab S FE", "Samsung Galaxy Tab S10 FE"),
@@ -95,12 +98,35 @@ SAMSUNG = (
     (r"\b(?:galaxy\s*)?tab\s*s7\s*fe\b", "Galaxy Tab S FE", "Samsung Galaxy Tab S7 FE"),
     (r"\b(?:galaxy\s*)?tab\s*s7\s*\+", "Galaxy Tab S", "Samsung Galaxy Tab S7+"),
     (r"\b(?:galaxy\s*)?tab\s*s7\b", "Galaxy Tab S", "Samsung Galaxy Tab S7"),
+    (r"\b(?:galaxy\s*)?tab\s*s6\s*lite\b.*\b2024\b", "Galaxy Tab S Lite", "Samsung Galaxy Tab S6 Lite (2024)"),
     (r"\b(?:galaxy\s*)?tab\s*s6\s*lite\b", "Galaxy Tab S Lite", "Samsung Galaxy Tab S6 Lite"),
     (r"\b(?:galaxy\s*)?tab\s*a9\s*\+", "Galaxy Tab A", "Samsung Galaxy Tab A9+"),
     (r"\b(?:galaxy\s*)?tab\s*a9\b", "Galaxy Tab A", "Samsung Galaxy Tab A9"),
     (r"\b(?:galaxy\s*)?tab\s*a8\b", "Galaxy Tab A", "Samsung Galaxy Tab A8"),
     (r"\b(?:galaxy\s*)?tab\s*a7\s*lite\b", "Galaxy Tab A", "Samsung Galaxy Tab A7 Lite"),
     (r"\b(?:galaxy\s*)?tab\s*a7\b", "Galaxy Tab A", "Samsung Galaxy Tab A7"),
+)
+
+TOLINO = (
+    (r"\bvision\s*color\b", "Vision", "Tolino Vision Color"),
+    (r"\bvision\s*6\b", "Vision", "Tolino Vision 6"),
+    (r"\bvision\s*5\b", "Vision", "Tolino Vision 5"),
+    (r"\bvision\s*4\s*hd\b", "Vision", "Tolino Vision 4 HD"),
+    (r"\bshine\s*color\b", "Shine", "Tolino Shine Color"),
+    (r"\bshine\s*5\b", "Shine", "Tolino Shine 5"),
+    (r"\bshine\s*4\b", "Shine", "Tolino Shine 4"),
+    (r"\bepos\s*3\b", "Epos", "Tolino Epos 3"),
+    (r"\bepos\s*2\b", "Epos", "Tolino Epos 2"),
+)
+
+RUGGED = (
+    ("DOOGEE", "T", r"\bt30\s*pro\b", "DOOGEE T30 Pro"),
+    ("i.safe", "IS", r"\bis930[.]?1\b", "i.safe IS930.1"),
+    ("Xplore", "Rugged", r"\bix101b1\b", "Xplore iX101B1"),
+    ("OUKITEL", "RT", r"\brt2\b", "OUKITEL RT2"),
+    ("Dell", "Latitude 2-in-1", r"\blatitude\s*5290\b", "Dell Latitude 5290 2-in-1"),
+    ("Dell", "Venue", r"\bvenue\s*11\s*pro\s*7139\b", "Dell Venue 11 Pro 7139"),
+    ("Fujitsu", "Stylistic", r"\bstylistic\s*q738\b", "Fujitsu Stylistic Q738"),
 )
 
 OTHER = (
@@ -113,7 +139,7 @@ OTHER = (
     ("Lenovo", "Tab M", r"\btab\s*m11\b", "Lenovo Tab M11"),
     ("Lenovo", "Tab M", r"\btab\s*m10\s*plus\s*(?:gen\s*)?3\b", "Lenovo Tab M10 Plus Gen 3"),
     ("Lenovo", "Tab M", r"\btab\s*m10\s*plus\b", "Lenovo Tab M10 Plus"),
-    ("Lenovo", "Tab M", r"\btab\s*m10\b", "Lenovo Tab M10"),
+    ("Lenovo", "Tab M", r"\btab\s*m10\b|\blenovo\s*m10\s*hd\b", "Lenovo Tab M10"),
     ("Lenovo", "Legion", r"\blegion\s*y700\b", "Lenovo Legion Y700"),
     ("Microsoft", "Surface Go", r"\bsurface\s*go\s*4\b", "Microsoft Surface Go 4"),
     ("Microsoft", "Surface Go", r"\bsurface\s*go\s*3\b", "Microsoft Surface Go 3"),
@@ -121,7 +147,7 @@ OTHER = (
     ("Microsoft", "Surface Go", r"\bsurface\s*go\b", "Microsoft Surface Go (1ª gen.)"),
     ("Microsoft", "Surface Pro", r"\bsurface\s*pro\s*9\b", "Microsoft Surface Pro 9"),
     ("Microsoft", "Surface Pro", r"\bsurface\s*pro\s*8\b", "Microsoft Surface Pro 8"),
-    ("Microsoft", "Surface Pro", r"\bsurface\s*pro\s*7\s*\+\b", "Microsoft Surface Pro 7+"),
+    ("Microsoft", "Surface Pro", r"\bsurface\s*pro\s*7\s*(?:\+|plus)(?=\W|$)", "Microsoft Surface Pro 7+"),
     ("Microsoft", "Surface Pro", r"\bsurface\s*pro\s*7\b", "Microsoft Surface Pro 7"),
     ("Microsoft", "Surface Pro", r"\bsurface\s*pro\s*6\b", "Microsoft Surface Pro 6"),
     ("Xiaomi", "Pad", r"\bpad\s*6s\s*pro\b", "Xiaomi Pad 6S Pro"),
@@ -158,6 +184,7 @@ def _apple(text):
         (r"\ba2696\b|\ba2757\b|\ba2777\b", "iPad", "iPad 10ª gen. (2022)"),
         (r"\ba260[2345]\b", "iPad", "iPad 9ª gen. (2021)"),
         (r"\ba2270\b|\ba2428\b|\ba2429\b|\ba2430\b", "iPad", "iPad 8ª gen. (2020)"),
+        (r"\ba2197\b|\ba2200\b|\ba2198\b", "iPad", "iPad 7ª gen. (2019)"),
         (r"\ba2993\b|\ba2995\b|\ba2996\b", "iPad mini", "iPad mini (A17 Pro, 2024)"),
         (r"\ba2567\b|\ba2568\b|\ba2569\b", "iPad mini", "iPad mini 6ª gen. (2021)"),
         (r"\ba2588\b|\ba2589\b|\ba2591\b", "iPad Air", "iPad Air 5ª gen. (M1, 2022)"),
@@ -165,6 +192,13 @@ def _apple(text):
     )
     for pattern, fam, model in IDs:
         if _hit(text, pattern): return ("Apple", fam, model)
+    # Apple's 11-inch and 12.9-inch iPad Pro generation numbering differs.
+    proid = (
+        (r"\ba1980\b|\ba2013\b|\ba1934\b|\ba1979\b", 'iPad Pro 11" 1ª gen. (2018)'),
+        (r"\ba1876\b|\ba2014\b|\ba1895\b|\ba1983\b", 'iPad Pro 12.9" 3ª gen. (2018)'),
+    )
+    for pattern,model in proid:
+        if _hit(text,pattern): return ("Apple","iPad Pro",model)
     mini = _hit(text, r"\bipad\s*mini\b")
     air = _hit(text, r"\bipad\s*air\b")
     pro = _hit(text, r"\bipad\s*pro\b")
@@ -177,7 +211,7 @@ def _apple(text):
         else: model = "iPad mini — generazione da verificare"
     elif air:
         fam = "iPad Air"
-        gen = re.search(r"\b([3456])(?:st|nd|rd|th|[ªa])?\s*(?:gen|generazione)\b", text)
+        gen = re.search(r"\b([3456])(?:st|nd|rd|th|[ªa])?\s*\.?\s*(?:gen|generazione)\b", text)
         chip = re.search(r"\bm([1234])\b", text)
         if chip:
             model = f"iPad Air {size + chr(34) + ' ' if size else ''}M{chip.group(1)}"
@@ -185,17 +219,19 @@ def _apple(text):
         else: model = "iPad Air — generazione da verificare"
     elif pro:
         fam = "iPad Pro"
-        gen = re.search(r"\b([1-6])(?:st|nd|rd|th|[ªa])?\s*(?:gen|generazione)\b", text)
+        gen = re.search(r"\b([1-6])(?:st|nd|rd|th|[ªa])?\s*\.?\s*(?:gen|generazione)\b", text)
         chip = re.search(r"\bm([1234])\b", text)
         if chip: model = f"iPad Pro {size + chr(34) + ' ' if size else ''}M{chip.group(1)}"
         elif gen and size: model = f"iPad Pro {size}{chr(34)} {gen.group(1)}ª gen."
+        elif size == "11" and _hit(text,r"\b2018\b"): model = 'iPad Pro 11" 1ª gen. (2018)'
+        elif size == "12.9" and _hit(text,r"\b2018\b"): model = 'iPad Pro 12.9" 3ª gen. (2018)'
         else: model = "iPad Pro — taglia/generazione da verificare"
     else:
         fam = "iPad"
-        gen = re.search(r"\b(7|8|9|10|11)(?:st|nd|rd|th|[ªa])?\s*(?:gen|generazione)\b", text)
+        gen = re.search(r"\b(7|8|9|10|11)(?:st|nd|rd|th|[ªa])?\s*\.?\s*(?:gen|generazione)\b", text)
         if _hit(text, r"\ba16\b") or (gen and gen.group(1) == "11"):
             model = "iPad (A16, 2025)"
-        elif gen: model = f"iPad {gen.group(1)}ª gen."
+        elif gen: model = f"iPad {gen.group(1)}ª gen." + {"9":" (2021)","8":" (2020)","7":" (2019)","10":" (2022)"}.get(gen.group(1),"")
         elif _hit(text, r"\bipad\s*10\b") and not _hit(text, r"\b10[.,]2\b"): model = "iPad 10ª gen. (2022)"
         elif _hit(text, r"\bipad\s*9\b"): model = "iPad 9ª gen. (2021)"
         else: model = "iPad — generazione da verificare"
@@ -211,7 +247,9 @@ def _kindle(text):
         if _hit(text, r"\b2022\b|\b(?:1|prima)\s*(?:gen|generazione)\b"):
             return ("Amazon", "Kindle Scribe", "Kindle Scribe (2022)")
         return ("Amazon", "Kindle Scribe", "Kindle Scribe — versione da verificare")
-    if _hit(text, r"\boasis\b"): return ("Amazon", "Kindle Oasis", "Kindle Oasis — generazione da verificare")
+    if _hit(text, r"\boasis\b"):
+        label = "Kindle Oasis 10ª gen. (2019)" if _hit(text,r"\b10(?:th|[ªa])?\s*(?:gen|generazione)\b") else "Kindle Oasis — generazione da verificare"
+        return ("Amazon", "Kindle Oasis", label)
     if _hit(text, r"\bpaper\s*white\b|\bpaperwhite\b"):
         family = "Kindle Paperwhite"
         if _hit(text, r"\b(?:12(?:th)?|12[ªa])\s*(?:gen|generazione)?\b|\b2024\b"): gen = "12ª gen. (2024)"
@@ -227,12 +265,14 @@ def _kindle(text):
 
 
 def _status(text):
-    if _hit(text, r"\b(?:lotto|lot|bundle|stock|[2-9]\s*(?:tablet|ipad|kindle|kobo|pezzi|pcs))\b"):
+    if _hit(text, r"\b(?:lotto|lot|stock|[2-9]\s*(?:pezzi|pcs))\b"):
         return "⚠️ Lotto / più dispositivi"
     if _hit(text, r"\b(?:ic[l]?oud\s*lock|activation\s*lock|mdm|frp|account\s*lock|bloccato|bloccata|locked|blacklisted|guasto|guasta|difettoso|difettosa|not\s*working|non\s*funzionante|for\s*parts|spares\s*or\s*repair|defekt|broken|schermo\s*rotto|display\s*rotto)\b"):
         return "⚠️ Guasto / bloccato"
-    if _hit(text, r"\b(?:cover|custodia|case|housse|copertina|pellicola|screen\s*protector|proteggi\s*schermo|ricambio|replacement|spare\s*part|tastiera|keyboard|folio|pencil|stylus|stilo|penna|caricabatterie|charger|solo\s*scatola|empty\s*box)\b"):
+    if _hit(text, r"\b(?:cover|custodia|case|housse|copertina|pellicola|screen\s*protector|proteggi\s*schermo|ricambio|replacement|spare\s*part|tastiera|keyboard|folio|pencil|stylus|stilo|penna|caricabatterie|charger|solo\s*scatola|empty\s*box)\b") and not _hit(text, r"\b(?:con|inclus[oa]|insieme|with|plus|\+)\s*(?:pen|pencil|stylus|stilo|custodia|case|cover|tastiera|keyboard)\b"):
         return "⚠️ Accessorio / ricambio"
+    if _hit(text, r"\b(?:touch\s*dell\s*latitude|hp\s*elitebook\s*830)\b"):
+        return "⚠️ Computer portatile / fuori categoria"
     return "Usato — stato da verificare"
 
 
@@ -246,12 +286,12 @@ def _configuration(text, model, status):
         if re.search(r"\b(?:ram|memory\s*ram)\s*:?\s*$", prefix): continue
         val = (m.group(1) + " GB") if m.group(1) else (m.group(2) + " TB")
         values.append(val)
-    if values:
+    if values and len(set(values)) == 1:
         model += " · " + values[-1]
     if _hit(text, r"\b(?:5g|4g|lte|cellular|sim|wi[\s-]?fi\s*\+\s*cellular)\b"):
         model += " · Cellular"
     elif _hit(text, r"\bwi[\s-]?fi(?:\s*only)?\b") and not model.startswith(
-            ("Kindle ", "Kobo ", "PocketBook ", "BOOX ", "reMarkable ")):
+            ("Kindle ", "Kobo ", "PocketBook ", "BOOX ", "reMarkable ", "Tolino ")):
         # Wi-Fi is standard on these e-readers: do not split identical models
         # just because one seller included Wi-Fi in the title.
         model += " · Wi-Fi"
@@ -271,6 +311,8 @@ def classify_tablet(title):
         result = next((("PocketBook", family, model) for pat,family,model in POCKETBOOK if _hit(t,pat)), ("PocketBook","PocketBook eReader","PocketBook — modello da identificare"))
     elif _hit(t, r"\b(?:onyx|boox)\b"):
         result = next((("BOOX", family, model) for pat,family,model in BOOX if _hit(t,pat)), ("BOOX","BOOX eReader","BOOX — modello da identificare"))
+    elif _hit(t, r"\btolino\b"):
+        result = next((("Tolino", family, model) for pat,family,model in TOLINO if _hit(t,pat)), ("Tolino","Tolino eReader","Tolino — modello da identificare"))
     elif _hit(t, r"\b(?:samsung|galaxy\s*tab)\b"):
         result = next((("Samsung", family, model) for pat,family,model in SAMSUNG if _hit(t,pat)), ("Samsung","Galaxy Tab","Samsung Galaxy Tab — modello da identificare"))
     elif _hit(t, r"\bipad\b|\ba(?:2[0-9]{3}|3[0-9]{3})\b"):
@@ -278,11 +320,23 @@ def classify_tablet(title):
     elif _hit(t, r"\bkindle\b|\bcolorsoft\b"):
         result = _kindle(t)
     else:
+        for brand, family, pattern, model in RUGGED:
+            if _hit(t,pattern):
+                result = (brand,family,model)
+                break
         for brand in ("Lenovo","Microsoft","Xiaomi","Huawei","Amazon","reMarkable"):
+            if result is not None: break
             if _hit(t,rf"\b{brand}\b") or (brand=="Microsoft" and _hit(t,r"\bsurface\b")) or (brand=="reMarkable" and _hit(t,r"\bremarkable\b")) or (brand=="Xiaomi" and _hit(t,r"\bredmi\b")) or (brand=="Amazon" and _hit(t,r"\bfire\s*(?:hd\s*)?\d+\b")):
                 result = next(((b,f,m) for b,f,pat,m in OTHER if b==brand and _hit(t,pat)), (brand,brand+" Tablet",brand+" — modello da identificare"))
                 break
     if result is None:
         return ("Non identificato","Tablet / eReader non identificato","Modello da identificare",status)
     brand,family,model = result
+    if brand == "Amazon" and family == "Kindle base" and _hit(t, r"\bsignature\b"):
+        status = "⚠️ Modello Kindle ambiguo"
+    if status == "⚠️ Accessorio / ricambio" and _hit(
+            t, r"(?:\+|\bcon\b|\bwith\b)\s*(?:pen\b|pencil\b|stylus\b|stilo\b|custodia\b|case\b|cover\b|tastiera\b|keyboard\b)"):
+        status = "Usato — accessorio incluso da verificare"
+    if len(set(m.group(0).replace(" ","") for m in re.finditer(r"\b(?:32|64|128|256|512)\s*gb\b",t))) > 1 and _hit(t,r"\b(?:o|oppure|or)\b"):
+        status = "⚠️ Varianti memoria alternative"
     return (brand,family,_configuration(t,model,status),status)
