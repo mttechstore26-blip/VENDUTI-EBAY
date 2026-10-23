@@ -23,14 +23,20 @@ def classify_model(category, title):
     from apple_laptop_taxonomy import classify_apple_laptop
     from laptop_taxonomy import classify_laptop
     from monitor_taxonomy import classify_monitor
+    from tablet_taxonomy import classify_tablet
     functions = {
         "20667": classify_kitchen, "38250": classify_coffee,
         "139971": classify_console, "111422": classify_apple_laptop,
-        "175672": classify_laptop, "80053": classify_monitor
+        "175672": classify_laptop, "80053": classify_monitor,
+        "171485": classify_tablet
     }
     try:
         result = functions[str(category)](title) if str(category) in functions else classify(str(category), title)
         brand, family, model = result[:3]
+        if str(category) == "171485" and (result[3].startswith("⚠️") or
+                any(word in str(model).casefold() for word in
+                    ("da identificare", "da verificare", "non identificato"))):
+            return None
         model = str(model or "").strip()
         family = str(family or "").strip()
         if not model or any(word in model.casefold() for word in
