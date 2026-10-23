@@ -62,7 +62,7 @@ def watchlist_change(category_id, model_name, add):
                          (str(category_id),str(model_name)))
 
 
-ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971','111422','175672','80053','31388')
+ACTIVE_CATEGORIES = ('141755', '63', '717', '233', '183446', '101376', '20667', '38250', '139971','111422','175672','80053','31388','171485')
 st.set_page_config(page_title='Venduti eBay | MT TECH', page_icon='📚', layout='wide')
 # Compact styling without replacing Streamlit's selection-enabled dataframe.
 st.markdown("""
@@ -148,8 +148,8 @@ def fetch(sql, params=()):
 def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
-                      AND (s.category_id!='139971' OR (s.sold_price>=300 AND is_eu_location(s.item_location)=1))
-                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')
+                      AND (s.category_id NOT IN ('139971','171485') OR (((s.category_id='139971' AND s.sold_price>=300) OR (s.category_id='171485' AND s.sold_price BETWEEN 100 AND 250)) AND is_eu_location(s.item_location)=1))
+                    WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388','171485')
                     GROUP BY c.category_id,c.name ORDER BY n DESC, c.name ASC''')
 
 if 'category_id' not in [r[1] for r in sqlite3.connect(DB).execute('PRAGMA table_info(sales)').fetchall()]:
@@ -165,7 +165,7 @@ except sqlite3.OperationalError:
 CATEGORY_ICONS = {
     '141755':'⚽', '63':'📚', '717':'🧸', '233':'🎲',
     '183446':'🧱', '101376':'🪆', '20667':'🍳', '38250':'☕',
-    '139971':'🎮', '111422':'🍎', '175672':'💻', '80053':'🖥️', '31388':'📷',
+    '139971':'🎮', '111422':'🍎', '175672':'💻', '80053':'🖥️', '31388':'📷', '171485':'📱',
 }
 category_df = category_df.sort_values(['n','name'], ascending=[False,True], kind='stable')
 names={str(r.category_id): f"{CATEGORY_ICONS.get(str(r.category_id),'📦')} {r.name} ({int(r.n)} venduti)" for r in category_df.itertuples(index=False)}
@@ -192,7 +192,7 @@ with st.sidebar:
             new_sales = fetch("""
                 SELECT COUNT(*) AS new_count FROM sales
                 WHERE category_id = ?
-                  AND (category_id!='139971' OR (sold_price>=300 AND is_eu_location(item_location)=1))
+                  AND (category_id NOT IN ('139971','171485') OR (((category_id='139971' AND sold_price>=300) OR (category_id='171485' AND sold_price BETWEEN 100 AND 250)) AND is_eu_location(item_location)=1))
                   AND first_seen >= ? AND first_seen < ?
             """, (selected_category, cycle_start.isoformat(), cycle_end.isoformat()))
             count = int(new_sales.iloc[0]['new_count'])
@@ -213,7 +213,7 @@ with st.sidebar:
     search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
     period = st.selectbox('Periodo', ['Tutti', 'Ultimi 7 giorni', 'Ultimi 30 giorni', 'Ultimi 90 giorni', 'Ultimi 365 giorni'])
     condition = st.selectbox('Condizione', ['Tutte', 'Nuovo', 'Di seconda mano'])
-    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND (category_id!='139971' OR (sold_price>=300 AND is_eu_location(item_location)=1)) AND category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')")
+    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND (category_id NOT IN ('139971','171485') OR (((category_id='139971' AND sold_price>=300) OR (category_id='171485' AND sold_price BETWEEN 100 AND 250)) AND is_eu_location(item_location)=1)) AND category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388','171485')")
     highest = int(max(70, max_df.iloc[0]['hi'] or 70))
     price_low = st.number_input('Prezzo minimo visualizzato (€)', min_value=70, max_value=max(70,highest), value=70, step=10)
     price_high = st.number_input('Prezzo massimo visualizzato (€)', min_value=int(price_low), value=max(highest,int(price_low)), step=20)
@@ -224,7 +224,7 @@ with st.sidebar:
         load_categories.clear()
         st.rerun()
 
-where = ["category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')", 'sold_price >= ?', 'sold_price >= ?', 'sold_price <= ?']
+where = ["category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388','171485')", 'sold_price >= ?', 'sold_price >= ?', 'sold_price <= ?']
 params = [70, float(price_low), float(price_high)]
 if selected_category is not None:
     where.append('category_id = ?')
@@ -251,7 +251,7 @@ if period != 'Tutti':
 if condition != 'Tutte':
     where.append('condition = ?')
     params.append(condition)
-where.append("(category_id!='139971' OR (sold_price>=300 AND is_eu_location(item_location)=1))")
+where.append("(category_id NOT IN ('139971','171485') OR (((category_id='139971' AND sold_price>=300) OR (category_id='171485' AND sold_price BETWEEN 100 AND 250)) AND is_eu_location(item_location)=1))")
 where_sql = ' AND '.join(where)
 base = ' FROM sales WHERE ' + where_sql
 summary = fetch('SELECT COUNT(*) n, ROUND(AVG(sold_price),2) avg_price, MIN(sold_price) low_price, MAX(sold_price) high_price FROM sales WHERE ' + where_sql, tuple(params)).iloc[0]
@@ -279,7 +279,7 @@ if section == '🏷️ Categorie':
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
                          s.title, s.sold_price, s.ended_at, s.url, s.image, s.item_location, s.seller
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
-                         WHERE s.sold_price>=70 AND (s.category_id!='139971' OR (s.sold_price>=300 AND is_eu_location(s.item_location)=1)) AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')""")
+                         WHERE s.sold_price>=70 AND (s.category_id NOT IN ('139971','171485') OR (((s.category_id='139971' AND s.sold_price>=300) OR (s.category_id='171485' AND s.sold_price BETWEEN 100 AND 250)) AND is_eu_location(s.item_location)=1)) AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388','171485')""")
         if category_filter is not None:
             raw = raw[raw['category_id'].astype(str) == str(category_filter)].copy()
         if raw.empty:
@@ -748,7 +748,7 @@ if section == '🏷️ Categorie':
                  Mediana_comparabili=('_comparable_price','median'),
                  Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
-        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053','31388') else 'Famiglia'
+        display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053','31388','171485') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Acquisto massimo €'] = family_stats['Mediana_comparabili'].apply(max_buy_price)
         family_stats['Acquisto prudente €'] = family_stats['P25'].apply(max_buy_price)
