@@ -2,6 +2,7 @@
 import os
 import sys
 import sqlite3
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 import requests
@@ -17,7 +18,7 @@ RESERVE = 10
 
 def main():
     if STATE.exists() and STATE.read_text().strip() == "COMPLETE":
-        print("COMPLETE: storico dal 1 ottobre recuperato")
+        print("COMPLETE: paginazione terminata per storico dal 1 agosto")
         return
     page = int(STATE.read_text().strip()) if STATE.exists() else 1
     key = os.getenv("SOLDCOMPS_API_KEY", "").strip()
@@ -50,6 +51,18 @@ def main():
     items = payload.get("items", [])
     if items and not any(i.get("endedAt") for i in items):
         sys.exit("Date assenti: pagina invariata")
+    # Diagnostic on the very same API response; zero additional requests.
+    dated = [str(item.get("endedAt") or "")[:10] for item in items if item.get("endedAt")]
+    months = Counter(d[:7] for d in dated)
+    known_eu = sum(is_eu_location(i.get("itemLocation")) for i in items)
+    unknown_loc = sum(not str(i.get("itemLocation") or "").strip() for i in items)
+    known_non_eu = len(items) - known_eu - unknown_loc
+    print(f"[DIAGNOSTICA] Pagina {page} | date: "
+          f"{min(dated) if dated else 'N/D'} → {max(dated) if dated else 'N/D'} "
+          f"| mesi: {dict(sorted(months.items()))}")
+    print(f"[DIAGNOSTICA] Località: UE={known_eu}, "
+          f"extra-UE/non riconosciuta={known_non_eu}, "
+          f"assente={unknown_loc} | hasNextPage={payload.get('hasNextPage')}")
     db = connect()
     db.execute("""INSERT INTO categories(category_id,name)
         VALUES('139971','CONSOLE 300+ 🇪🇺')
