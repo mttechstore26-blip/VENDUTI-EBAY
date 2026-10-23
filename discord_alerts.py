@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 import requests
 from dotenv import load_dotenv
+from eu_locations import is_eu_location
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
@@ -61,7 +62,7 @@ def run():
             print("[DISCORD] baseline inizializzata; nessuna notifica storica")
             return
         since = datetime.now(timezone.utc) - timedelta(days=7)
-        data = db.execute("""SELECT category_id,item_id,title,sold_price,ended_at,first_seen
+        data = db.execute("""SELECT category_id,item_id,title,sold_price,ended_at,first_seen,item_location
                              FROM sales WHERE ended_at>=? AND sold_price>=70
                              ORDER BY ended_at DESC""", (since.isoformat(),)).fetchall()
         watched = set()
@@ -69,7 +70,9 @@ def run():
             watched = {(str(c),str(m)) for c,m in db.execute(
                 "SELECT category_id,model_name FROM model_watchlist")}
         grouped = {}
-        for cat, sid, title, price, ended, first_seen in data:
+        for cat, sid, title, price, ended, first_seen, location in data:
+            if str(cat) == '139971' and (float(price or 0) < 300 or not is_eu_location(location)):
+                continue
             model = classify_model(cat, title or "")
             if not model:
                 continue
