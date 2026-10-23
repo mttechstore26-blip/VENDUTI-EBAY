@@ -52,7 +52,7 @@ categories = [
     ("101376", "Bambole vintage", "160"),
     ("20667", "Piccoli elettrodomestici per la cucina", "100"),
     ("38250", "Macchine da caffè", "100"),
-    ("139971", "CONSOLE 400+", "400"),
+    ("139971", "CONSOLE 300+ 🇪🇺", "300"),
     ("111422", "PORTATILI APPLE 150-300 🇮🇹", "150"),
     ("175672", "PORTATILI 150-300", "150"),
     ("80053", "Monitor usati Italia 100-300", "100"),
