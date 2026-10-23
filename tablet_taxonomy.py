@@ -171,7 +171,7 @@ def _apple(text):
     if mini:
         fam = "iPad mini"
         if _hit(text, r"\ba17\s*pro\b|\b2024\b"): model = "iPad mini (A17 Pro, 2024)"
-        elif _hit(text, r"\b(?:6(?:th)?|sesta|6[ªa])\s*(?:gen|generazione)\b|\b2021\b"): model = "iPad mini 6ª gen. (2021)"
+        elif _hit(text, r"\b(?:6(?:th)?|sesta|6[ªa])\s*(?:gen|generazione)\b|\b2021\b|\bipad\s*mini\s*6\b"): model = "iPad mini 6ª gen. (2021)"
         elif _hit(text, r"\b(?:5(?:th)?|quinta|5[ªa])\s*(?:gen|generazione)\b|\b2019\b"): model = "iPad mini 5ª gen. (2019)"
         elif _hit(text, r"\b(?:4(?:th)?|quarta|4[ªa])\s*(?:gen|generazione)\b"): model = "iPad mini 4ª gen."
         else: model = "iPad mini — generazione da verificare"
@@ -196,6 +196,8 @@ def _apple(text):
         if _hit(text, r"\ba16\b") or (gen and gen.group(1) == "11"):
             model = "iPad (A16, 2025)"
         elif gen: model = f"iPad {gen.group(1)}ª gen."
+        elif _hit(text, r"\bipad\s*10\b") and not _hit(text, r"\b10[.,]2\b"): model = "iPad 10ª gen. (2022)"
+        elif _hit(text, r"\bipad\s*9\b"): model = "iPad 9ª gen. (2021)"
         else: model = "iPad — generazione da verificare"
     return ("Apple", fam, model)
 
