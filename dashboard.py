@@ -1,6 +1,9 @@
 """Venduti eBay: fast SQLite-backed Streamlit dashboard, category-wide collection unchanged."""
 import os
 import math
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+import requests
 import sqlite3
 from html import escape
 from urllib.parse import urlparse
@@ -98,6 +101,55 @@ div[data-testid="stDataFrame"] {border-radius:15px;overflow:hidden}
 @media(max-width:900px){.mt-sale-table{min-width:980px}}
 </style>''', unsafe_allow_html=True)
 st.markdown('<div class="mt-hero"><div class="mt-title">📚 Venduti eBay</div><div class="mt-subtitle">MT TECH · Analisi per categorie · Raccolta senza parole chiave · Da 70 €</div></div>', unsafe_allow_html=True)
+
+
+# Read-only subscription usage endpoint, cached across Streamlit sessions for an hour.
+# Never put the API key in HTML, logs, or GitHub.
+@st.cache_data(ttl=3600, show_spinner=False)
+def soldcomps_credits_remaining():
+    api_key = os.getenv('SOLDCOMPS_API_KEY', '').strip()
+    if not api_key:
+        return None
+    try:
+        response = requests.get(
+            'https://api.sold-comps.com/usage',
+            headers={'Authorization': f'Bearer {api_key}'},
+            timeout=(4, 10),
+        )
+        response.raise_for_status()
+        return int(response.json()['usage']['remaining'])
+    except (requests.RequestException, KeyError, TypeError, ValueError):
+        return None
+
+credits_left = soldcomps_credits_remaining()
+target_day = date(2026, 11, 18)
+days_to_target = max(0, (target_day - datetime.now(ZoneInfo('Europe/Rome')).date()).days)
+daily_planned = len(ACTIVE_CATEGORIES) * 4
+planned_needed = days_to_target * daily_planned
+if credits_left is None:
+    st.caption('💳 SoldComps: saldo momentaneamente non disponibile; nessuna raccolta avviata dalla dashboard.')
+else:
+    reserve = credits_left - planned_needed
+    status_text = (
+        f'✅ In linea · margine stimato {reserve:,} crediti'
+        if reserve >= 0 else f'⚠️ Rischio esaurimento · mancano {-reserve:,} crediti'
+    )
+    banner_color = '#166534' if reserve >= 0 else '#9a3412'
+    banner_bg = '#f0fdf4' if reserve >= 0 else '#fff7ed'
+    st.markdown(
+        f'<div style="background:{banner_bg};border:1px solid {banner_color}55;'
+        f'border-radius:14px;padding:14px 18px;margin:4px 0 18px">'
+        f'<div style="font-size:15px;font-weight:700;color:{banner_color}">💳 Crediti SoldComps disponibili</div>'
+        f'<div style="font-size:28px;font-weight:850;color:#0f172a">{credits_left:,}</div>'
+        f'<div style="color:#334155;font-size:14px">Consumo programmato: fino a {daily_planned} al giorno'
+        f' · Fabbisogno stimato fino al 18/11: {planned_needed:,}'
+        f' · {days_to_target} giorni rimanenti</div>'
+        f'<div style="font-weight:700;color:{banner_color};margin-top:5px">{status_text}</div>'
+        f'<div style="font-size:12px;color:#64748b">Saldo API aggiornato al massimo ogni ora.'
+        f' Previsione senza recuperi storici o test extra.</div></div>',
+        unsafe_allow_html=True,
+    )
+
 
 if not DB.is_file():
     st.warning('Database non trovato. Verifica DB_PATH nel file .env.')
