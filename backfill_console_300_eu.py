@@ -1,4 +1,4 @@
-"""Quota-safe one-page-per-invocation console EU backfill from 1 October 2026."""
+"""Quota-safe one-page-per-invocation console EU backfill from 1 August 2026."""
 import os
 import sys
 import sqlite3
@@ -11,8 +11,8 @@ from eu_locations import is_eu_location
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
-STATE = ROOT / "data/console_300_eu_oct2026.state"
-CUTOFF = "2026-10-01"
+STATE = ROOT / "data/console_300_eu_aug2026.state"
+CUTOFF = "2026-08-01"
 RESERVE = 10
 
 def main():
