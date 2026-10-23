@@ -20,6 +20,7 @@ from apple_laptop_taxonomy import classify_apple_laptop
 from laptop_taxonomy import classify_laptop
 from monitor_taxonomy import classify_monitor
 from camera_taxonomy import classify_camera
+from tablet_taxonomy import classify_tablet
 from location_flags import flag_for_location
 from eu_locations import is_eu_location
 
@@ -352,6 +353,8 @@ if section == '🏷️ Categorie':
                 parsed.append(classify_monitor(r.title))
             elif str(r.category_id) == '31388':
                 parsed.append(classify_camera(r.title))
+            elif str(r.category_id) == '171485':
+                parsed.append(classify_tablet(r.title))
             else:
                 parsed.append((*classify(r.category_id, r.title), 'Non applicabile'))
         raw[['Brand / Editore','Famiglia / Serie','Modello / Edizione','Stato prodotto']] = pd.DataFrame(parsed,index=raw.index)
@@ -742,6 +745,35 @@ if section == '🏷️ Categorie':
                 ' [' + subset.loc[unknown_camera, 'item_id'].astype(str) + ']'
             )
             group_level = 'Modello / configurazione'
+        elif export_id == '171485':
+            subset = subset.copy()
+            st.caption('📱 Modelli distinti per generazione, memoria e rete quando dichiarate. '
+                       'La classificazione deriva dai titoli dei venditori e non certifica '
+                       'lo stato o le specifiche effettive dei prodotti.')
+            only_devices = st.checkbox(
+                'Escludi accessori, lotti e dispositivi dichiarati guasti/bloccati',
+                value=True, key='tablet_only_comparable')
+            if only_devices:
+                subset = subset[
+                    ~subset['Stato prodotto'].fillna('').str.startswith('⚠️')
+                ].copy()
+            if subset.empty:
+                st.info('Nessun dispositivo confrontabile con i filtri scelti.')
+                st.stop()
+            subset['Modello tablet/eReader'] = subset['Modello / Edizione'].fillna('Modello da identificare')
+            unknown_tablet = subset['Modello tablet/eReader'].str.contains(
+                r'da identificare|da verificare|non identificat|non specificat',
+                case=False, regex=True)
+            subset.loc[unknown_tablet, 'Modello tablet/eReader'] += (
+                ' [' + subset.loc[unknown_tablet,'item_id'].astype(str) + ']'
+            )
+            if not only_devices:
+                flagged = subset['Stato prodotto'].fillna('').str.startswith('⚠️')
+                subset.loc[flagged, 'Modello tablet/eReader'] += (
+                    ' · ' + subset.loc[flagged, 'Stato prodotto'].astype(str)
+                    + ' [' + subset.loc[flagged,'item_id'].astype(str) + ']'
+                )
+            group_level = 'Modello tablet/eReader'
         elif export_id == '80053':
             # Every row is grouped by its actual identifiable monitor model,
             # not by generic panel type such as "Monitor gaming LCD".
