@@ -40,8 +40,10 @@ COUNTRIES = [
  ("🇨🇳","Cina",r"\b(?:china|cina|chine)\b"),
  ("🇦🇺","Australia",r"\b(?:australia)\b"),
 ]
-def flag_for_location(location):
+def flag_for_location(location, category_id=None):
     if location is None or str(location).strip().lower() in ("","none","nan","null"):
+        if str(category_id) == "63":
+            return "🇮🇹", "Italia (filtro nazionale della categoria; località non riportata)"
         return "🏳️","Località non disponibile"
     location=str(location)
     for flag,country,pattern in COUNTRIES:
