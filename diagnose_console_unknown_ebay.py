@@ -42,9 +42,9 @@ def location_from_html(source):
     parser.feed(source)
     text = " ".join(" ".join(parser.parts).split())
     patterns = [
-        r"Oggetto che si trova a\\s*:\\s*(.{1,110}?)(?=\\s*(?:Spedizione|Consegna|Restituzioni|Pagamenti|Dettagli|Vedi i dettagli|\\||$))",
-        r"Located in\\s*:\\s*(.{1,110}?)(?=\\s*(?:Shipping|Delivery|Returns|Payments|See details|$))",
-        r"Artikelstandort\\s*:\\s*(.{1,110}?)(?=\\s*(?:Versand|Lieferung|Rücknahme|$))",
+        r"Oggetto che si trova a\s*:\s*(.{1,110}?)(?=\s*(?:Spedizione|Consegna|Restituzioni|Pagamenti|Dettagli|Vedi i dettagli|\||$))",
+        r"Located in\s*:\s*(.{1,110}?)(?=\s*(?:Shipping|Delivery|Returns|Payments|See details|$))",
+        r"Artikelstandort\s*:\s*(.{1,110}?)(?=\s*(?:Versand|Lieferung|Rücknahme|$))",
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.I)
