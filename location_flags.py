@@ -42,7 +42,7 @@ COUNTRIES = [
 ]
 def flag_for_location(location, category_id=None):
     if location is None or str(location).strip().lower() in ("","none","nan","null"):
-        if str(category_id) == "63":
+        if str(category_id) in ("63", "31388"):
             return "🇮🇹", "Italia (filtro nazionale della categoria; località non riportata)"
         return "🏳️","Località non disponibile"
     location=str(location)
