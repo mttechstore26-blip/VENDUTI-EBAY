@@ -18,6 +18,7 @@ from laptop_taxonomy import classify_laptop
 from monitor_taxonomy import classify_monitor
 from camera_taxonomy import classify_camera
 from location_flags import flag_for_location
+from eu_locations import is_eu_location
 
 load_dotenv(Path(__file__).resolve().parent / '.env')
 
@@ -135,6 +136,7 @@ def connect():
     uri = f'file:{DB.as_posix()}?mode=ro'
     conn = sqlite3.connect(uri, uri=True, timeout=10)
     conn.execute('PRAGMA busy_timeout=5000')
+    conn.create_function('is_eu_location', 1, lambda loc: int(is_eu_location(loc)))
     return conn
 
 @st.cache_data(ttl=40, show_spinner=False)
@@ -146,6 +148,7 @@ def fetch(sql, params=()):
 def load_categories():
     return fetch('''SELECT c.category_id, c.name, COUNT(s.item_id) AS n
                     FROM categories c LEFT JOIN sales s ON s.category_id=c.category_id AND s.sold_price>=70
+                      AND (s.category_id!='139971' OR (s.sold_price>=300 AND is_eu_location(s.item_location)=1))
                     WHERE c.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')
                     GROUP BY c.category_id,c.name ORDER BY n DESC, c.name ASC''')
 
@@ -189,6 +192,7 @@ with st.sidebar:
             new_sales = fetch("""
                 SELECT COUNT(*) AS new_count FROM sales
                 WHERE category_id = ?
+                  AND (category_id!='139971' OR (sold_price>=300 AND is_eu_location(item_location)=1))
                   AND first_seen >= ? AND first_seen < ?
             """, (selected_category, cycle_start.isoformat(), cycle_end.isoformat()))
             count = int(new_sales.iloc[0]['new_count'])
@@ -209,7 +213,7 @@ with st.sidebar:
     search = st.text_input('🔎 Cerca prodotto venduto', placeholder='Es. Mexico 86, Dylan Dog 1, Argentina 78…', help='Cerca tra gli annunci già presenti nel database, senza consumare crediti SoldComps.')
     period = st.selectbox('Periodo', ['Tutti', 'Ultimi 7 giorni', 'Ultimi 30 giorni', 'Ultimi 90 giorni', 'Ultimi 365 giorni'])
     condition = st.selectbox('Condizione', ['Tutte', 'Nuovo', 'Di seconda mano'])
-    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')")
+    max_df = fetch("SELECT MAX(sold_price) hi FROM sales WHERE sold_price>=70 AND (category_id!='139971' OR (sold_price>=300 AND is_eu_location(item_location)=1)) AND category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')")
     highest = int(max(70, max_df.iloc[0]['hi'] or 70))
     price_low = st.number_input('Prezzo minimo visualizzato (€)', min_value=70, max_value=max(70,highest), value=70, step=10)
     price_high = st.number_input('Prezzo massimo visualizzato (€)', min_value=int(price_low), value=max(highest,int(price_low)), step=20)
@@ -247,6 +251,7 @@ if period != 'Tutti':
 if condition != 'Tutte':
     where.append('condition = ?')
     params.append(condition)
+where.append("(category_id!='139971' OR (sold_price>=300 AND is_eu_location(item_location)=1))")
 where_sql = ' AND '.join(where)
 base = ' FROM sales WHERE ' + where_sql
 summary = fetch('SELECT COUNT(*) n, ROUND(AVG(sold_price),2) avg_price, MIN(sold_price) low_price, MAX(sold_price) high_price FROM sales WHERE ' + where_sql, tuple(params)).iloc[0]
@@ -274,7 +279,7 @@ if section == '🏷️ Categorie':
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
                          s.title, s.sold_price, s.ended_at, s.url, s.image, s.item_location, s.seller
                          FROM sales s LEFT JOIN categories c ON c.category_id=s.category_id
-                         WHERE s.sold_price>=70 AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')""")
+                         WHERE s.sold_price>=70 AND (s.category_id!='139971' OR (s.sold_price>=300 AND is_eu_location(s.item_location)=1)) AND s.category_id IN ('141755','63','717','233','183446','101376','20667','38250','139971','111422','175672','80053','31388')""")
         if category_filter is not None:
             raw = raw[raw['category_id'].astype(str) == str(category_filter)].copy()
         if raw.empty:
