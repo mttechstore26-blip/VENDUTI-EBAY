@@ -27,6 +27,8 @@ class TabletTaxonomyTests(unittest.TestCase):
         self.check("Kindle Paperwhite 11th 8GB", "Amazon", "11ª gen.")
         self.check("Kindle Scribe 2022", "Amazon", "Scribe (2022)")
         self.check("Kindle Colorsoft", "Amazon", "Colorsoft")
+        self.assertEqual(classify_tablet("Kindle Paperwhite 11th Wi-Fi")[2],
+                         classify_tablet("Kindle Paperwhite 11th")[2])
 
     def test_kobo_from_official_model_numbers(self):
         self.check("Kobo Clara BW N365", "Kobo", "Clara BW")
