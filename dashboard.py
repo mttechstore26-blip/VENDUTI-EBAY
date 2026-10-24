@@ -101,6 +101,8 @@ div[data-testid="stDataFrame"] [role="columnheader"]{font-size:13px!important;fo
 div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"]{background-color:#eef5ff!important}
 div[data-testid="stDataFrame"] [role="gridcell"]{font-size:15px!important}
 div[data-testid="stMetric"]{background:white;border:1px solid #e0e8f3;border-radius:17px;box-shadow:0 8px 24px rgba(20,38,71,.055)}
+.mt-model-heading{font-size:27px;font-weight:850;letter-spacing:-.04em;color:#172b4d;margin:14px 0 5px;line-height:1.15}
+div[data-testid="stVerticalBlock"]{gap:.65rem}
 .mt-table-intro{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:16px 19px;margin:8px 0 12px;border:1px solid #dce6f3;border-radius:16px;background:linear-gradient(105deg,#fff,#f3f7ff);box-shadow:0 5px 18px #16335409}
 .mt-table-intro strong{display:block;font-size:18px;color:#172b4d;letter-spacing:-.025em}
 .mt-table-intro small{display:block;color:#63748d;margin-top:3px;font-size:13px}
@@ -347,8 +349,7 @@ if search.strip() and section != '🏷️ Categorie':
     st.info(f'🔎 Ricerca: **{search}** · **{count}** venduti trovati nell’archivio eBay. I risultati dipendono dalle vendite già raccolte.')
 
 if section == '🏷️ Categorie':
-    st.subheader('🎯 Esplora una categoria')
-    st.caption('Radar famiglie dei venduti eBay · stesso flusso di Venduti Subito')
+    # Keep category navigation compact to prioritize model results.
     @st.cache_data(ttl=60, show_spinner=False)
     def taxonomy_data(category_filter=None):
         raw = fetch("""SELECT s.item_id, s.category_id, COALESCE(c.name,s.category_id) AS category_name,
@@ -440,85 +441,87 @@ if section == '🏷️ Categorie':
         if subset.empty:
             st.info('Nessun prodotto corrisponde ai filtri della categoria.')
             st.stop()
-        with st.expander('✏️ Organizza prodotti · spostamento rapido', expanded=False):
-            st.caption('Trova un annuncio, seleziona una famiglia esistente e salva. Le modifiche sono permanenti e aggiornano le classifiche.')
-            editor_password = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
-            if not editor_password:
-                st.warning('Editor non configurato: imposta EBAY_EDITOR_PASSWORD nel file .env della VPS.')
-            else:
-                from hmac import compare_digest
-                password = st.text_input('🔒 Password editor', type='password', key='taxonomy_editor_password')
-                if compare_digest(password, editor_password) and bool(password):
-                    lookup = st.text_input('🔍 Cerca per ID o titolo', placeholder='Es. 227558428111 oppure MacBook Pro', key='taxonomy_lookup')
-                    candidates = subset.copy()
-                    if lookup.strip():
-                        term = lookup.strip().casefold()
-                        candidates = candidates[
-                            candidates['item_id'].astype(str).str.contains(term, case=False, regex=False)
-                            | candidates['title'].fillna('').astype(str).str.contains(term, case=False, regex=False)
-                        ]
-                    candidates = candidates.sort_values('ended_at', ascending=False).head(150)
-                    if candidates.empty:
-                        st.info('Nessun annuncio trovato. Modifica la ricerca.')
-                    else:
-                        item_options = list(candidates['item_id'].astype(str))
-                        item_labels = {str(r.item_id): f"{r.item_id} · {str(r.title)[:90]} · {eur(r.sold_price)}"
-                                       for r in candidates.itertuples(index=False)}
-                        chosen_item = st.selectbox('1 · Scegli il prodotto', item_options,
-                                                   format_func=lambda v: item_labels.get(v,v))
-                        current = candidates[candidates['item_id'].astype(str).eq(chosen_item)].iloc[0]
-                        current_brand = str(current['Brand / Editore'])
-                        current_family = str(current['Famiglia / Serie'])
-                        current_model = str(current['Modello / Edizione'])
-                        st.caption(f"Attuale: {current_brand} → {current_family} → {current_model}")
-                        model_grouped = str(current['category_id']) in ('111422','175672','20667','38250','139971')
-                        if model_grouped:
-                            # These dashboards rank by model: one destination is enough.
-                            existing = sorted(set(subset['Modello / Edizione'].dropna().astype(str)) | {current_model})
-                            destination = st.selectbox('2 · Sposta nel modello / gruppo',
-                                ['➕ Crea nuovo gruppo'] + existing,
-                                index=existing.index(current_model)+1,
-                                key=f'taxonomy_destination_{chosen_item}')
-                            model_final = (st.text_input('Nome del nuovo gruppo', max_chars=180,
-                                            key=f'taxonomy_new_destination_{chosen_item}').strip()
-                                           if destination == '➕ Crea nuovo gruppo' else destination)
-                            # Derive brand and family from an existing member of the target group.
-                            target = subset[subset['Modello / Edizione'].astype(str).eq(model_final)]
-                            if not target.empty:
-                                brand_final = str(target.iloc[0]['Brand / Editore'])
-                                family_final = str(target.iloc[0]['Famiglia / Serie'])
-                            else:
-                                brand_final, family_final = current_brand, current_family
-                            st.caption(f'📍 Destinazione: {model_final or "Inserisci il nome del gruppo"}')
+        quick_actions, csv_actions = st.columns([1, 1], gap='small')
+        with quick_actions:
+            with st.expander('✏️ Organizza prodotti · spostamento rapido', expanded=False):
+                st.caption('Trova un annuncio, seleziona una famiglia esistente e salva. Le modifiche sono permanenti e aggiornano le classifiche.')
+                editor_password = os.getenv('EBAY_EDITOR_PASSWORD', '').strip()
+                if not editor_password:
+                    st.warning('Editor non configurato: imposta EBAY_EDITOR_PASSWORD nel file .env della VPS.')
+                else:
+                    from hmac import compare_digest
+                    password = st.text_input('🔒 Password editor', type='password', key='taxonomy_editor_password')
+                    if compare_digest(password, editor_password) and bool(password):
+                        lookup = st.text_input('🔍 Cerca per ID o titolo', placeholder='Es. 227558428111 oppure MacBook Pro', key='taxonomy_lookup')
+                        candidates = subset.copy()
+                        if lookup.strip():
+                            term = lookup.strip().casefold()
+                            candidates = candidates[
+                                candidates['item_id'].astype(str).str.contains(term, case=False, regex=False)
+                                | candidates['title'].fillna('').astype(str).str.contains(term, case=False, regex=False)
+                            ]
+                        candidates = candidates.sort_values('ended_at', ascending=False).head(150)
+                        if candidates.empty:
+                            st.info('Nessun annuncio trovato. Modifica la ricerca.')
                         else:
-                            brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
-                            brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
-                                                        index=brands.index(current_brand)+1)
-                            brand_final = (st.text_input('Nome nuovo brand').strip()
-                                           if brand_choice == '➕ Nuovo brand' else brand_choice)
-                            known_families = sorted(set(subset.loc[
-                                subset['Brand / Editore'].astype(str).eq(brand_final),
-                                'Famiglia / Serie'].dropna().astype(str)) | {current_family})
-                            family_choice = st.selectbox('3 · Famiglia',
-                                ['➕ Nuova famiglia'] + known_families,
-                                index=known_families.index(current_family)+1)
-                            family_final = (st.text_input('Nome nuova famiglia').strip()
-                                            if family_choice == '➕ Nuova famiglia' else family_choice)
-                            model_final = st.text_input('4 · Modello / edizione',
-                                value=current_model, key=f'taxonomy_model_{chosen_item}')
-                        submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
-                        if submitted:
-                            if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
-                                st.error('Compila brand, famiglia e modello.')
+                            item_options = list(candidates['item_id'].astype(str))
+                            item_labels = {str(r.item_id): f"{r.item_id} · {str(r.title)[:90]} · {eur(r.sold_price)}"
+                                           for r in candidates.itertuples(index=False)}
+                            chosen_item = st.selectbox('1 · Scegli il prodotto', item_options,
+                                                       format_func=lambda v: item_labels.get(v,v))
+                            current = candidates[candidates['item_id'].astype(str).eq(chosen_item)].iloc[0]
+                            current_brand = str(current['Brand / Editore'])
+                            current_family = str(current['Famiglia / Serie'])
+                            current_model = str(current['Modello / Edizione'])
+                            st.caption(f"Attuale: {current_brand} → {current_family} → {current_model}")
+                            model_grouped = str(current['category_id']) in ('111422','175672','20667','38250','139971')
+                            if model_grouped:
+                                # These dashboards rank by model: one destination is enough.
+                                existing = sorted(set(subset['Modello / Edizione'].dropna().astype(str)) | {current_model})
+                                destination = st.selectbox('2 · Sposta nel modello / gruppo',
+                                    ['➕ Crea nuovo gruppo'] + existing,
+                                    index=existing.index(current_model)+1,
+                                    key=f'taxonomy_destination_{chosen_item}')
+                                model_final = (st.text_input('Nome del nuovo gruppo', max_chars=180,
+                                                key=f'taxonomy_new_destination_{chosen_item}').strip()
+                                               if destination == '➕ Crea nuovo gruppo' else destination)
+                                # Derive brand and family from an existing member of the target group.
+                                target = subset[subset['Modello / Edizione'].astype(str).eq(model_final)]
+                                if not target.empty:
+                                    brand_final = str(target.iloc[0]['Brand / Editore'])
+                                    family_final = str(target.iloc[0]['Famiglia / Serie'])
+                                else:
+                                    brand_final, family_final = current_brand, current_family
+                                st.caption(f'📍 Destinazione: {model_final or "Inserisci il nome del gruppo"}')
                             else:
-                                save_taxonomy_override(str(current['category_id']), chosen_item,
-                                                       brand_final.strip(), family_final.strip(), model_final.strip())
-                                taxonomy_data.clear()
-                                fetch.clear()
-                                st.success('Prodotto spostato: la scelta è stata salvata.')
-                                st.rerun()
-                elif password:
-                    st.error('Password non corretta.')
+                                brands = sorted(set(subset['Brand / Editore'].dropna().astype(str)) | {current_brand})
+                                brand_choice = st.selectbox('2 · Brand', ['➕ Nuovo brand'] + brands,
+                                                            index=brands.index(current_brand)+1)
+                                brand_final = (st.text_input('Nome nuovo brand').strip()
+                                               if brand_choice == '➕ Nuovo brand' else brand_choice)
+                                known_families = sorted(set(subset.loc[
+                                    subset['Brand / Editore'].astype(str).eq(brand_final),
+                                    'Famiglia / Serie'].dropna().astype(str)) | {current_family})
+                                family_choice = st.selectbox('3 · Famiglia',
+                                    ['➕ Nuova famiglia'] + known_families,
+                                    index=known_families.index(current_family)+1)
+                                family_final = (st.text_input('Nome nuova famiglia').strip()
+                                                if family_choice == '➕ Nuova famiglia' else family_choice)
+                                model_final = st.text_input('4 · Modello / edizione',
+                                    value=current_model, key=f'taxonomy_model_{chosen_item}')
+                            submitted = st.button('💾 Sposta prodotto e aggiorna classifiche', type='primary', key='taxonomy_save')
+                            if submitted:
+                                if not all(str(v).strip() for v in (brand_final, family_final, model_final)):
+                                    st.error('Compila brand, famiglia e modello.')
+                                else:
+                                    save_taxonomy_override(str(current['category_id']), chosen_item,
+                                                           brand_final.strip(), family_final.strip(), model_final.strip())
+                                    taxonomy_data.clear()
+                                    fetch.clear()
+                                    st.success('Prodotto spostato: la scelta è stata salvata.')
+                                    st.rerun()
+                    elif password:
+                        st.error('Password non corretta.')
         # Export completo, indipendente dalla selezione delle famiglie.
         # Usa i dati SQLite gia raccolti: nessuna richiesta SoldComps.
         export_rows = subset.sort_values('ended_at', ascending=False).copy()
@@ -529,14 +532,15 @@ if section == '🏷️ Categorie':
             'url': 'URL annuncio', 'image': 'URL immagine',
         })
         export_id = str(subset['category_id'].iloc[0])
-        st.download_button(
-            f"📥 Scarica CSV completo della categoria ({len(export_rows)} venduti)",
-            data=export_rows.to_csv(index=False).encode('utf-8-sig'),
-            file_name=f"venduti_ebay_categoria_{export_id}.csv",
-            mime='text/csv',
-            key=f"download_category_{export_id}",
-            help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
-        )
+        with csv_actions:
+            st.download_button(
+                f"📥 CSV completo · {len(export_rows)} venduti",
+                data=export_rows.to_csv(index=False).encode('utf-8-sig'),
+                file_name=f"venduti_ebay_categoria_{export_id}.csv",
+                mime='text/csv',
+                key=f"download_category_{export_id}",
+                help="Esporta tutti i venduti archiviati della categoria con brand, famiglia, modello, prezzi e date. Non consuma richieste SoldComps."
+            )
         if export_id == '175672':
             # Exclusive, auditable groups: lots and defective units must not distort
             # single working-laptop median prices or demand rankings.
@@ -556,8 +560,7 @@ if section == '🏷️ Categorie':
             segment_order = ['Singolo completo (presunto)', 'Guasto / ricambi / da verificare',
                              'Lotto multiplo', 'Modello non identificato']
             segment_counts = subset['Segmento portatile'].value_counts()
-            st.caption('📊 Segmentazione dei portatili archiviati (titoli indicativi, non verifiche fisiche): ' +
-                       ' · '.join(f'{name}: {int(segment_counts.get(name,0))}' for name in segment_order))
+            # Keep detailed segment counts out of the default compact view.
             segment_choice = st.selectbox(
                 'Classifica portatili', ['Singolo completo (presunto)', 'Tutti'] +
                 [name for name in segment_order if name != 'Singolo completo (presunto)'],
@@ -710,7 +713,7 @@ if section == '🏷️ Categorie':
                 st.info('Nessun annuncio corrisponde ai filtri LEGO selezionati.')
                 st.stop()
 
-        st.subheader('🧩 Brand / famiglie / modelli')
+        st.markdown('<div class="mt-model-heading">🧩 Brand / famiglie / modelli</div>', unsafe_allow_html=True)
 
         if export_id in ('20667','38250','139971','111422','175672'):
             def modello_commerciale(row):
