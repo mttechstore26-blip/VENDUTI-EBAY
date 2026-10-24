@@ -89,17 +89,39 @@ div[data-testid="stDataFrame"] {border-radius:15px;overflow:hidden}
 .mt-hero {padding:25px 29px;color:white;border-radius:24px;background:radial-gradient(circle at 93% 10%,#564cba 0%,transparent 34%),linear-gradient(125deg,#101a33,#1e3566 65%,#312e81);box-shadow:0 15px 35px #0f172a20;margin-bottom:16px}
 .mt-title {font-size:37px;font-weight:850;letter-spacing:-1px}.mt-subtitle{color:#cad4e8;font-size:17px;margin-top:6px}
 
-.mt-sale-table{width:100%;border-collapse:separate;border-spacing:0;background:white;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;font-size:16px}
-.mt-sale-table th{background:#f1f5f9;color:#475569;font-size:15px;text-align:left;padding:13px 10px;position:sticky;top:0}
-.mt-sale-table td{padding:10px;border-top:1px solid #e9edf5;vertical-align:middle;color:#334155}
-.mt-sale-table tr:hover td{background:#f8fafc}
-.mt-sale-table a{color:#1d4ed8;text-decoration:none;font-weight:650}
-.mt-sale-table a:hover{text-decoration:underline}
-.mt-sale-table img{width:112px;height:124px;object-fit:contain;border-radius:12px;background:#f8fafc;display:block}
-.mt-sale-table .price{font-weight:750;white-space:nowrap}
-.mt-scroll{overflow:auto;border-radius:16px}
+/* MT TECH design system: shared by every eBay category and both tables. */
+:root{--mt-ink:#15233e;--mt-muted:#64748b;--mt-line:#e4eaf3;--mt-blue:#2563eb}
+.stApp{background:radial-gradient(ellipse 70% 45% at 0% 0%,#e6edff 0%,transparent 78%),#f5f7fc}
+.block-container{max-width:1720px;padding:1.25rem 2rem 3rem}
+section[data-testid="stSidebar"]{background:#fff!important;border-right:1px solid #e5eaf3!important}
+section[data-testid="stSidebar"] [data-testid="stWidgetLabel"]{font-weight:700;color:#334155}
+div[data-testid="stExpander"]{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.035);overflow:hidden}
+div[data-testid="stDataFrame"]{background:#fff;border:1px solid #dbe4f0!important;border-radius:18px!important;overflow:hidden;box-shadow:0 12px 32px rgba(21,42,85,.07);font-variant-numeric:tabular-nums}
+div[data-testid="stDataFrame"] [role="columnheader"]{font-size:13px!important;font-weight:800!important;letter-spacing:.025em;color:#3d506e!important;background:#eef3fa!important;border-bottom:1px solid #d9e3f0!important}
+div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"]{background-color:#eef5ff!important}
+div[data-testid="stDataFrame"] [role="gridcell"]{font-size:15px!important}
+div[data-testid="stMetric"]{background:white;border:1px solid #e0e8f3;border-radius:17px;box-shadow:0 8px 24px rgba(20,38,71,.055)}
+.mt-table-intro{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:16px 19px;margin:8px 0 12px;border:1px solid #dce6f3;border-radius:16px;background:linear-gradient(105deg,#fff,#f3f7ff);box-shadow:0 5px 18px #16335409}
+.mt-table-intro strong{display:block;font-size:18px;color:#172b4d;letter-spacing:-.025em}
+.mt-table-intro small{display:block;color:#63748d;margin-top:3px;font-size:13px}
+.mt-table-pill{border:1px solid #bdebd3;border-radius:999px;background:#e9fff2;color:#17623e;font-weight:800;font-size:12px;padding:7px 12px;white-space:nowrap}
+.mt-sale-table{width:100%;min-width:920px;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #dbe4f0;border-radius:18px;overflow:hidden;font-size:15px;box-shadow:0 12px 32px rgba(21,42,85,.07);font-variant-numeric:tabular-nums}
+.mt-sale-table thead th{background:#edf3fb;color:#425574;text-transform:uppercase;letter-spacing:.06em;font-size:12px;font-weight:850;text-align:left;padding:16px 15px;position:sticky;top:0;z-index:1;border-bottom:1px solid #d9e3f0}
+.mt-sale-table tbody td{padding:13px 15px;border-top:1px solid #edf1f7;vertical-align:middle;color:#334155;line-height:1.45}
+.mt-sale-table tbody tr:nth-child(even) td{background:#f8faff}
+.mt-sale-table tbody tr:hover td{background:#edf5ff}
+.mt-sale-table a{color:#173867;text-decoration:none;font-weight:750;line-height:1.4}
+.mt-sale-table a:hover{color:#1d4ed8;text-decoration:underline}
+.mt-sale-table img{width:100px;height:104px;object-fit:contain;border:1px solid #e8edf5;border-radius:13px;background:#fff;display:block;box-shadow:0 3px 10px #142b4e0a}
+.mt-sale-table .price{font-size:18px;font-weight:850;color:#0e6244;white-space:nowrap}
 .mt-sale-table .muted{color:#94a3b8}
-@media(max-width:900px){.mt-sale-table{min-width:980px}}
+.mt-sale-table td:nth-child(3){font-size:13px;color:#667892}
+.mt-sale-table td:nth-child(5){white-space:nowrap;font-weight:600;color:#52647e}
+.mt-sale-table td:last-child{white-space:nowrap;font-weight:700}
+.mt-scroll{overflow-x:auto;border-radius:18px;padding-bottom:2px}
+@media(max-width:900px){.block-container{padding:1rem .7rem 2rem}.mt-table-intro{padding:13px}.mt-sale-table{min-width:850px}.mt-sale-table img{width:78px;height:86px}.mt-sale-table tbody td{padding:10px}}
+
+
 </style>''', unsafe_allow_html=True)
 st.markdown('<div class="mt-hero"><div class="mt-title">📚 Venduti eBay</div><div class="mt-subtitle">MT TECH · Analisi per categorie · Raccolta senza parole chiave · Da 70 €</div></div>', unsafe_allow_html=True)
 
@@ -966,24 +988,41 @@ if section == '🏷️ Categorie':
         visible_stats = family_stats[compact_cols].copy()
         highlight_cols = [c for c in ('Acquisto massimo €', 'Acquisto prudente €') if c in visible_stats.columns]
         styled_stats = visible_stats.style.format(na_rep='—')
+        styled_stats = styled_stats.set_table_styles([
+            {'selector':'th', 'props':[('font-weight','800'),('background-color','#edf3fb')]},
+            {'selector':'td', 'props':[('border-bottom','1px solid #edf1f7')]},
+        ])
+        styled_stats = styled_stats.apply(
+            lambda row: ['background-color:#f7faff' if row.name % 2 else 'background-color:#ffffff'] * len(row),
+            axis=1,
+        )
         if highlight_cols:
             styled_stats = styled_stats.map(price_highlight, subset=highlight_cols)
         styled_stats = styled_stats.set_properties(
-            subset=[display_group], **{'font-weight':'700','color':'#172b4d'}
+            subset=[display_group], **{'font-weight':'800','color':'#18345d'}
+        )
+        styled_stats = styled_stats.set_properties(
+            subset=['Venduti'], **{'font-weight':'850','color':'#1d4ed8'}
+        )
+        st.markdown(
+            '<div class="mt-table-intro"><div><strong>📈 Modelli e opportunità di acquisto</strong>'
+            '<small>Seleziona più righe per confrontare gli annunci · prezzi in euro · venduti totali</small>'
+            '</div><span class="mt-table-pill">● Verde = acquisto 80–130 €</span></div>',
+            unsafe_allow_html=True,
         )
         state=st.dataframe(
             styled_stats, hide_index=True, width='stretch',
-            height=min(660, 60 + 42*len(family_stats)),
+            height=min(780, 64 + 46*len(family_stats)),
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
-            column_config={display_group:st.column_config.TextColumn(display_group,width=430,help='Modello riconosciuto dagli annunci eBay'),
-                           'Venduti':st.column_config.NumberColumn('Venduti',width=80,help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
+            column_config={display_group:st.column_config.TextColumn(display_group,width=370,help='Modello riconosciuto dagli annunci eBay'),
+                           'Venduti':st.column_config.NumberColumn('Venduti',width=100,help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
-                           'Prezzo mediano':st.column_config.TextColumn('Mediana',width=145,help='Mediana di tutte le vendite registrate nel gruppo.'),
-                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width=145,help='P25 dei comparabili verificati, oppure degli annunci idonei quando la stima è indicativa.'),
-                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width=155,help='Da mediana comparabile o, se indicato, stima non verificata: controllare dotazione e condizioni'),
-                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width=155,help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
+                           'Prezzo mediano':st.column_config.TextColumn('Mediana',width=125,help='Mediana di tutte le vendite registrate nel gruppo.'),
+                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width=125,help='P25 dei comparabili verificati, oppure degli annunci idonei quando la stima è indicativa.'),
+                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width=130,help='Da mediana comparabile o, se indicato, stima non verificata: controllare dotazione e condizioni'),
+                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width=130,help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
             saved = watchlist_names(export_id)
