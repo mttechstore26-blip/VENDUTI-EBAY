@@ -976,14 +976,14 @@ if section == '🏷️ Categorie':
             height=min(660, 60 + 42*len(family_stats)),
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
-            column_config={display_group:st.column_config.TextColumn(display_group,width='large',help='Modello riconosciuto dagli annunci eBay'),
-                           'Venduti':st.column_config.NumberColumn('Venduti',width='small',help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
+            column_config={display_group:st.column_config.TextColumn(display_group,width=590,help='Modello riconosciuto dagli annunci eBay'),
+                           'Venduti':st.column_config.NumberColumn('Venduti',width=80,help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
-                           'Prezzo mediano':st.column_config.TextColumn('Mediana',width='small',help='Mediana di tutte le vendite registrate nel gruppo.'),
-                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width='small',help='P25 dei comparabili verificati, oppure degli annunci idonei quando la stima è indicativa.'),
-                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width='small',help='Da mediana comparabile o, se indicato, stima non verificata: controllare dotazione e condizioni'),
-                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width='small',help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
+                           'Prezzo mediano':st.column_config.TextColumn('Mediana',width=145,help='Mediana di tutte le vendite registrate nel gruppo.'),
+                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width=145,help='P25 dei comparabili verificati, oppure degli annunci idonei quando la stima è indicativa.'),
+                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width=155,help='Da mediana comparabile o, se indicato, stima non verificata: controllare dotazione e condizioni'),
+                           'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width=155,help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
             saved = watchlist_names(export_id)
