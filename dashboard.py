@@ -927,10 +927,10 @@ if section == '🏷️ Categorie':
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
         if export_id == '183446':
-            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Comparabili', 'Tipo stima', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist']
+            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist']
         else:
             cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
-                    'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Comparabili', 'Tipo stima', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
+                    'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
         # Only display labels change; all calculations retain their original keys.
         family_stats = family_stats.rename(columns={
@@ -956,9 +956,9 @@ if section == '🏷️ Categorie':
                 return ''
         # Default: six decision-driving columns; retain all other columns
         # in an optional detail view without changing the selected row IDs.
-        compact_cols = [display_group, 'Venduti', 'Comparabili', 'Tipo stima',
-                        'Prezzo mediano', 'Prezzo prudente (P25)',
-                        'Acquisto massimo €', 'Acquisto prudente €']
+        compact_cols = [display_group, 'Venduti', 'Prezzo mediano',
+                        'Prezzo prudente (P25)', 'Acquisto massimo €',
+                        'Acquisto prudente €']
         with st.expander('📊 Mostra statistiche complete', expanded=False):
             st.dataframe(family_stats, hide_index=True, width='stretch',
                          height=min(420, 60 + 35*len(family_stats)),
@@ -978,8 +978,6 @@ if section == '🏷️ Categorie':
             key='ebay_family_table',
             column_config={display_group:st.column_config.TextColumn(display_group,width='large',help='Modello riconosciuto dagli annunci eBay'),
                            'Venduti':st.column_config.NumberColumn('Venduti totali',help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
-                           'Comparabili':st.column_config.NumberColumn('Comparabili',help='Vendite dello stesso gruppo considerate affidabili per la stima verificata. Minimo 5.'),
-                           'Tipo stima':st.column_config.TextColumn('Stima',help='Indicativa: configurazione non dichiarata o campione verificato insufficiente; controllare dotazione e singoli annunci prima di acquistare.'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
                            'Prezzo mediano':st.column_config.TextColumn('Mediana',width='small',help='Mediana di tutte le vendite registrate nel gruppo.'),
