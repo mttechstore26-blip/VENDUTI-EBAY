@@ -977,7 +977,7 @@ if section == '🏷️ Categorie':
             on_select='rerun', selection_mode='multi-row',
             key='ebay_family_table',
             column_config={display_group:st.column_config.TextColumn(display_group,width='large',help='Modello riconosciuto dagli annunci eBay'),
-                           'Venduti':st.column_config.NumberColumn('Venduti totali',help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
+                           'Venduti':st.column_config.NumberColumn('Venduti',width='small',help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
                            'Prezzo mediano':st.column_config.TextColumn('Mediana',width='small',help='Mediana di tutte le vendite registrate nel gruppo.'),
