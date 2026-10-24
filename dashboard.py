@@ -824,19 +824,44 @@ if section == '🏷️ Categorie':
             suspect |= recent['Stato prodotto'].fillna('').astype(str).eq('Dotazione non specificata')
         recent['_comparable'] = ~suspect
         recent['_comparable_price'] = recent['sold_price'].where(~suspect)
+        # Fallback only for identifiable, non-defective items in the same model group.
+        # Unknown camera configuration remains indicative, never a verified comparable.
+        indicative_suspect = recent['Modello / Edizione'].fillna('').astype(str).str.contains(
+            r'non identificat|da identificare|non specificat|da verificare|più modelli',
+            case=False, regex=True)
+        indicative_suspect |= recent['Stato prodotto'].fillna('').astype(str).str.contains(
+            r'guast|difett|ricamb|accessor|lotto|incomplet|blocc',
+            case=False, regex=True)
+        indicative_suspect |= recent['title'].fillna('').astype(str).str.contains(
+            r'ricambi|solo scatola|box only|for parts|not working|lot of|lotto di|defekt',
+            case=False, regex=True)
+        recent['_indicative_price'] = recent['sold_price'].where(~indicative_suspect)
         family_stats=(recent.groupby(group_level,dropna=False)
             .agg(Venduti=('item_id','size'), V7=('_7d','sum'), V30=('_30d','sum'),
                  Prev30=('_prev30d','sum'), Prezzo=('sold_price','median'),
                  Comparabili=('_comparable','sum'),
                  P25=('_comparable_price',lambda x:x.quantile(.25)),
                  Mediana_comparabili=('_comparable_price','median'),
+                 Indicativi=('_indicative_price','count'),
+                 P25_indicativo=('_indicative_price',lambda x:x.quantile(.25)),
+                 Mediana_indicativa=('_indicative_price','median'),
                  Prezzo_min=('sold_price','min'), Prezzo_max=('sold_price','max'))
             .reset_index())
         display_group = 'Modello' if export_id in ('20667','38250','139971','111422','175672','183446','80053','31388','171485') else 'Famiglia'
         family_stats=family_stats.rename(columns={group_level:display_group})
         family_stats['Acquisto massimo €'] = family_stats['Mediana_comparabili'].apply(max_buy_price)
         family_stats['Acquisto prudente €'] = family_stats['P25'].apply(max_buy_price)
-        family_stats.loc[family_stats['Comparabili'] < 5, ['Acquisto massimo €','Acquisto prudente €']] = float('nan')
+        verified = family_stats['Comparabili'] >= 5
+        indicative = (~verified) & (family_stats['Indicativi'] >= 5)
+        family_stats.loc[~verified, ['Acquisto massimo €','Acquisto prudente €']] = float('nan')
+        family_stats.loc[indicative, 'Acquisto massimo €'] = family_stats.loc[
+            indicative, 'Mediana_indicativa'].apply(max_buy_price)
+        family_stats.loc[indicative, 'Acquisto prudente €'] = family_stats.loc[
+            indicative, 'P25_indicativo'].apply(max_buy_price)
+        family_stats['Tipo stima'] = 'Non disponibile'
+        family_stats.loc[verified, 'Tipo stima'] = 'Verificata'
+        family_stats.loc[indicative, 'Tipo stima'] = 'Indicativa · dotazione da verificare'
+        family_stats['P25'] = family_stats['P25'].where(~indicative, family_stats['P25_indicativo'])
         family_stats['Rendimento %'] = ((family_stats['P25']-family_stats['Acquisto prudente €'])
             /family_stats['Acquisto prudente €']*100).where(family_stats['Acquisto prudente €']>0).round(1)
         family_stats['Affidabilità'] = family_stats['Comparabili'].apply(
@@ -846,6 +871,7 @@ if section == '🏷️ Categorie':
             +25*family_stats['Rendimento %'].clip(lower=0,upper=60).fillna(0)/60
             +20*family_stats['Comparabili'].clip(upper=15)/15
         ).round().astype(int)
+        # Indicative estimates must never rank as verified buying opportunities.
         family_stats.loc[family_stats['Comparabili']<5,'Indice opportunità']=0
         for price_column in ('Acquisto massimo €','Acquisto prudente €'):
             family_stats[price_column] = pd.to_numeric(family_stats[price_column],errors='coerce').replace([float('inf'),-float('inf')],float('nan')).apply(lambda v: int(10 * math.floor(float(v) / 10 + 0.5)) if pd.notna(v) else None)
@@ -901,10 +927,10 @@ if section == '🏷️ Categorie':
         family_stats=family_stats.sort_values([ranking_col,'Venduti'],ascending=False,kind='stable').reset_index(drop=True)
         family_stats=family_stats.rename(columns={'V7':'Venduti 7 gg','V30':'Venduti 30 gg'})
         if export_id == '183446':
-            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist']
+            cols = [display_group, 'Venduti', 'Venduti 30 gg', 'Venduti 7 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Comparabili', 'Tipo stima', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist']
         else:
             cols = [display_group, 'Venduti', 'Venduti 7 gg', 'Venduti 30 gg',
-                    'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
+                    'Trend 30 gg', 'Prezzo', 'Prezzo P25', 'Acquisto massimo €', 'Acquisto prudente €', 'Comparabili', 'Tipo stima', 'Rendimento %', 'Affidabilità', 'Indice opportunità', '⭐ Watchlist', 'Prezzo minimo', 'Prezzo massimo', 'Tempo vendita']
         family_stats=family_stats[cols]
         # Only display labels change; all calculations retain their original keys.
         family_stats = family_stats.rename(columns={
@@ -918,7 +944,7 @@ if section == '🏷️ Categorie':
         with left_filters:
             st.toggle('⭐ Solo watchlist', key='watchlist_only', value=False)
         with right_filters:
-            st.caption('📊 Mediana e P25 comparabili · margini 25/30/40 €')
+            st.caption('📊 Acquisti verificati: almeno 5 comparabili · Indicativi: almeno 5 annunci idonei ma con dotazione da verificare · margini 25/30/40 €')
 
         if st.session_state.get('watchlist_only', False):
             family_stats = family_stats[family_stats['⭐ Watchlist'] == '⭐'].copy()
@@ -930,9 +956,9 @@ if section == '🏷️ Categorie':
                 return ''
         # Default: six decision-driving columns; retain all other columns
         # in an optional detail view without changing the selected row IDs.
-        compact_cols = [display_group, 'Venduti', 'Prezzo mediano',
-                        'Prezzo prudente (P25)', 'Acquisto massimo €',
-                        'Acquisto prudente €']
+        compact_cols = [display_group, 'Venduti', 'Comparabili', 'Tipo stima',
+                        'Prezzo mediano', 'Prezzo prudente (P25)',
+                        'Acquisto massimo €', 'Acquisto prudente €']
         with st.expander('📊 Mostra statistiche complete', expanded=False):
             st.dataframe(family_stats, hide_index=True, width='stretch',
                          height=min(420, 60 + 35*len(family_stats)),
@@ -952,11 +978,13 @@ if section == '🏷️ Categorie':
             key='ebay_family_table',
             column_config={display_group:st.column_config.TextColumn(display_group,width='large',help='Modello riconosciuto dagli annunci eBay'),
                            'Venduti':st.column_config.NumberColumn('Venduti totali',help='Numero complessivo di vendite registrate per questo modello o gruppo nel periodo disponibile.'),
+                           'Comparabili':st.column_config.NumberColumn('Comparabili',help='Vendite dello stesso gruppo considerate affidabili per la stima verificata. Minimo 5.'),
+                           'Tipo stima':st.column_config.TextColumn('Stima',help='Indicativa: configurazione non dichiarata o campione verificato insufficiente; controllare dotazione e singoli annunci prima di acquistare.'),
                            'Venduti 7 gg':st.column_config.NumberColumn('Venduti 7 gg'),
                            'Venduti 30 gg':st.column_config.NumberColumn('Venduti 30 gg'),
                            'Prezzo mediano':st.column_config.TextColumn('Mediana',width='small',help='Mediana di tutte le vendite registrate nel gruppo.'),
-                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width='small',help='25° percentile dei soli annunci considerati comparabili.'),
-                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width='small',help='Prezzo massimo di acquisto stimato dalla mediana delle vendite comparabili'),
+                           'Prezzo prudente (P25)':st.column_config.TextColumn('P25',width='small',help='P25 dei comparabili verificati, oppure degli annunci idonei quando la stima è indicativa.'),
+                           'Acquisto massimo €':st.column_config.NumberColumn('Acquisto max',format='%.0f €',width='small',help='Da mediana comparabile o, se indicato, stima non verificata: controllare dotazione e condizioni'),
                            'Acquisto prudente €':st.column_config.NumberColumn('Acquisto P25',format='%.0f €',width='small',help='Prezzo massimo prudente di acquisto basato sul 25° percentile'),
                            'Rendimento %':st.column_config.NumberColumn('Rendimento %',format='%.1f%%')})
         with st.expander('⭐ Watchlist · gestisci', expanded=False):
