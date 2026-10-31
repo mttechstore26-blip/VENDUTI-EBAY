@@ -106,7 +106,7 @@ def run():
             items = payload.get('items', [])
             items_seen += len(items)
             for item in items:
-                if category_id in ('139971', '171485') and not is_eu_location(item.get('itemLocation')):
+                if category_id in ('139971', '171485', '20667', '183446') and not is_eu_location(item.get('itemLocation')):
                     continue
                 price = number(item.get('soldPrice'))
                 if price is None or price < float(os.getenv('MIN_PRICE', '70')):
